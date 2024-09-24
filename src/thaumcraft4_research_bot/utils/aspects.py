@@ -25,18 +25,18 @@ aspect_parents = {
     "bestia": ("motus", "victus"),
     "sensus": ("aer", "spiritus"),
     "fames": ("victus", "vacuos"),
-    "astrum": ("lux", "primordium"), # astrum = custom4
+    "astrum": ("lux", "primordium"),  # astrum = custom4
     "gelum": ("ignis", "perditio"),
     "messis": ("herba", "humanus"),
     "lucrum": ("humanus", "fames"),
-    "primordium": ("vacuos", "motus"), # primordium = custom3
-    "gloria": ("humanus", "iter"), # gloria = custom5
+    "primordium": ("vacuos", "motus"),  # primordium = custom3
+    "gloria": ("humanus", "iter"),  # gloria = custom5
     "luxuria": ("corpus", "fames"),
     "invidia": ("sensus", "fames"),
     "venenum": ("aqua", "perditio"),
     "corpus": ("mortuus", "bestia"),
     "magneto": ("metallum", "iter"),
-    "aequalitas": ("cognitio", "ordo"), # aequalitas = custom1
+    "aequalitas": ("cognitio", "ordo"),  # aequalitas = custom1
     "tabernus": ("tutamen", "iter"),
     "metallum": ("terra", "vitreus"),
     "auram": ("praecantatio", "aer"),
@@ -48,7 +48,7 @@ aspect_parents = {
     "cognitio": ("ignis", "spiritus"),
     "humanus": ("bestia", "cognitio"),
     "vinculum": ("motus", "perditio"),
-    "vesania": ("cognitio", "vitium"), # vesania = custom2
+    "vesania": ("cognitio", "vitium"),  # vesania = custom2
     "superbia": ("volatus", "vacuos"),
     "caelum": ("vitreus", "metallum"),
     "terminus": ("lucrum", "alienis"),
@@ -67,11 +67,12 @@ aspect_parents = {
     "praecantatio": ("vacuos", "potentia"),
     "vitium": ("praecantatio", "perditio"),
     "fabrico": ("humanus", "instrumentum"),
-    "tenebrae": ("vacuos", "lux") # missing from automatic scraping for some reason
+    "tenebrae": ("vacuos", "lux"),  # missing from automatic scraping for some reason
 }
 
 # Build the graph as an adjacency list
 from collections import defaultdict
+from itertools import product
 
 graph = defaultdict(set)
 
@@ -100,15 +101,20 @@ while remaining_aspects:
         # Check if all parents' costs are known
         if all(parent in aspect_costs for parent in parents if parent is not None):
             # Compute the aspect's cost as the sum of its parents' costs
-            total_cost = sum(aspect_costs[parent] for parent in parents if parent is not None)
+            total_cost = sum(
+                aspect_costs[parent] for parent in parents if parent is not None
+            )
             aspect_costs[aspect] = total_cost
             remaining_aspects.remove(aspect)
             progress = True
     if not progress:
         # Cannot compute aspect costs due to missing parents or cycles
-        print("Cannot compute aspect costs for some aspects due to missing parents or cycles:")
+        print(
+            "Cannot compute aspect costs for some aspects due to missing parents or cycles:"
+        )
         print(", ".join(remaining_aspects))
         break
+
 
 def find_all_paths_of_length_n(start: str, end: str, n: int):
     """
@@ -160,3 +166,11 @@ def find_all_paths_of_length_n(start: str, end: str, n: int):
 
     return paths
 
+
+# Example usage:
+# starts = ["aer", "ignis"]
+# ends = ["terra", "aqua"]
+# n = 6
+# combinations = find_all_path_combinations_of_length_n(starts, ends, n)
+# for combo in combinations:
+#     print(combo)

@@ -1,6 +1,7 @@
 from typing import Set, Tuple, List
 
-from colors import rgb_to_aspect
+from thaumcraft4_research_bot.utils.colors import rgb_to_aspect
+
 
 # Function to check if there are consecutive pixels of the same color in a direction
 def has_consecutive_pixels(image, pixels, x, y, dx, dy):
@@ -42,9 +43,9 @@ def find_frame(image, pixels, target_color):
                     right_x, bottom_y = x, y
     return (left_x, top_y, right_x, bottom_y)
 
+
 def find_aspects_in_frame(
-    frame: Tuple[int, int, int, int],
-    pixels
+    frame: Tuple[int, int, int, int], pixels
 ) -> List[Tuple[Tuple[int, int, int, int], str]]:
     min_x, min_y, max_x, max_y = frame
     frame_bounds = (min_x, min_y, max_x, max_y)
@@ -59,9 +60,7 @@ def find_aspects_in_frame(
             aspect_name = rgb_to_aspect(color)
             if aspect_name is not None:
                 # Found a valid aspect pixel
-                bounding_box = flood_fill(
-                    pixels, x, y, color, visited, frame_bounds
-                )
+                bounding_box = flood_fill(pixels, x, y, color, visited, frame_bounds)
                 bb_min_x, bb_min_y, bb_max_x, bb_max_y = bounding_box
                 smaller_side = min(bb_max_x - bb_min_x, bb_max_y - bb_min_y)
                 # TODO: False positive on the letter color, bad fix doesn't work with larger gui size?
@@ -72,13 +71,14 @@ def find_aspects_in_frame(
 
     return found_aspects
 
+
 def flood_fill(
     pixels,
     x: int,
     y: int,
     target_color: Tuple[int, int, int],
     visited: Set[Tuple[int, int]],
-    frame_bounds: Tuple[int, int, int, int]
+    frame_bounds: Tuple[int, int, int, int],
 ) -> Tuple[int, int, int, int]:
     min_x, min_y, max_x, max_y = frame_bounds
     # Initialize the bounding box to the starting point
@@ -99,12 +99,7 @@ def flood_fill(
         max_y_bb = max(max_y_bb, cy)
 
         # Check neighbors (4-connected)
-        neighbors = [
-            (cx - 1, cy),
-            (cx + 1, cy),
-            (cx, cy - 1),
-            (cx, cy + 1)
-        ]
+        neighbors = [(cx - 1, cy), (cx + 1, cy), (cx, cy - 1), (cx, cy + 1)]
 
         for nx, ny in neighbors:
             if nx < min_x or nx > max_x or ny < min_y or ny > max_y:
@@ -120,10 +115,9 @@ def flood_fill(
 
     return (min_x_bb, min_y_bb, max_x_bb, max_y_bb)
 
+
 def find_squares_in_frame(
-    frame: Tuple[int, int, int, int],
-    pixels,
-    target_color: Tuple[int, int, int]
+    frame: Tuple[int, int, int, int], pixels, target_color: Tuple[int, int, int]
 ) -> List[Tuple[int, int]]:
     min_x, min_y, max_x, max_y = frame
     squares = []
@@ -163,6 +157,7 @@ def find_squares_in_frame(
         for min_x_bb, min_y_bb, max_x_bb, max_y_bb in squares_bounding_boxes
     ]
     return squares
+
 
 def get_center_of_box(box: Tuple[int, int, int, int]) -> Tuple[int, int]:
     min_x, min_y, max_x, max_y = box
