@@ -62,7 +62,11 @@ def find_aspects_in_frame(
                 bounding_box = flood_fill(
                     pixels, x, y, color, visited, frame_bounds
                 )
-                found_aspects.append((bounding_box, aspect_name))
+                bb_min_x, bb_min_y, bb_max_x, bb_max_y = bounding_box
+                smaller_side = min(bb_max_x - bb_min_x, bb_max_y - bb_min_y)
+                # TODO: False positive on the letter color, bad fix doesn't work with larger gui size?
+                if smaller_side > 8:
+                    found_aspects.append((bounding_box, aspect_name))
             else:
                 visited.add((x, y))
 
@@ -155,7 +159,13 @@ def find_squares_in_frame(
             squares_bounding_boxes.append(bbox)
     # Convert bounding boxes to center points using list comprehension
     squares = [
-        ((min_x_bb + max_x_bb) // 2, (min_y_bb + max_y_bb) // 2)
+        get_center_of_box((min_x_bb, min_y_bb, max_x_bb, max_y_bb))
         for min_x_bb, min_y_bb, max_x_bb, max_y_bb in squares_bounding_boxes
     ]
     return squares
+
+def get_center_of_box(box: Tuple[int, int, int, int]) -> Tuple[int, int]:
+    min_x, min_y, max_x, max_y = box
+    center_x = (min_x + max_x) // 2
+    center_y = (min_y + max_y) // 2
+    return (center_x, center_y)

@@ -3,15 +3,19 @@ import ctypes.wintypes as wintypes
 import pygetwindow as gw
 import pyautogui as gui
 from PIL.Image import Image
+from typing import Tuple
 
 # Import necessary Windows API functions and types
-user32 = ctypes.WinDLL('user32', use_last_error=True)
+user32 = ctypes.WinDLL("user32", use_last_error=True)
 
 # Define constants
 GWL_STYLE = -16
 GWL_EXSTYLE = -20
 
-def resizeWindowToContentSize(window: gw.Win32Window, content_width: int, content_height: int) -> None:
+
+def resize_window_to_content_size(
+    window: gw.Win32Window, content_width: int, content_height: int
+) -> None:
     hwnd = window._hWnd
     rect = wintypes.RECT()
 
@@ -36,7 +40,8 @@ def resizeWindowToContentSize(window: gw.Win32Window, content_width: int, conten
     # Resize the window
     user32.SetWindowPos(hwnd, None, rect.left, rect.top, new_width, new_height, 0)
 
-def screenshotWindow(window: gw.Win32Window) -> Image:
+
+def screenshot_window(window: gw.Win32Window) -> Tuple[Image, Tuple[int, int]]:
     hwnd = window._hWnd
     client_rect = wintypes.RECT()
 
@@ -56,9 +61,10 @@ def screenshotWindow(window: gw.Win32Window) -> Image:
 
     # Take a screenshot of the specified region
     image = gui.screenshot(region=(top_left.x, top_left.y, width, height))
-    return image.convert("RGB")
+    return (image.convert("RGB"), (top_left.x, top_left.y))
 
-def getGame() -> gw.Win32Window:
+
+def find_game() -> gw.Win32Window:
     windows = [
         win
         for win in gw.getWindowsWithTitle("GT: New Horizons")
@@ -69,3 +75,9 @@ def getGame() -> gw.Win32Window:
             print(window)
         raise Exception("Wrong number of game windows: " + str(len(windows)))
     return windows[0]
+
+
+def add_offset(base: Tuple[int, int], coord: Tuple[int, int]) -> Tuple[int, int]:
+    bx, by = base
+    cx, cy = coord
+    return (bx + cx, by + cy)
