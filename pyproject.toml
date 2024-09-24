@@ -1,0 +1,27 @@
+[project]
+name = "thaumcraft4-research-bot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pillow>=10.4.0",
+    "pyautogui>=0.9.54",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "black>=24.8.0",
+    "isort>=5.13.2",
+    "ruff>=0.6.7",
+]
+[tool.isort]
+profile = "black"
+
+[project.scripts]
+main = "thaumcraft4_research_bot.main:main"
+test_elements = "thaumcraft4_research_bot.main:test_element_list"
+test_aspect = "thaumcraft4_research_bot.main:test_aspect"
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
