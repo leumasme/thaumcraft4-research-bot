@@ -200,20 +200,25 @@ def pathfind_and_connect_coords(
             print("Could not find aspect", element, "in", inventory_aspects)
             continue
 
+        invImgX, invImgY = get_center_of_box(inventory_location)
+        boardImgX, boardImgY = grid.get_pixel_location(board_coord)
+
         invX, invY = add_offset(
-            window_base_coords, get_center_of_box(inventory_location)
+            window_base_coords, (invImgX, invImgY)
         )
         boardX, boardY = add_offset(
-            window_base_coords, grid.get_pixel_location(board_coord)
+            window_base_coords, (boardImgX, boardImgY)
         )
 
         if test_mode:
-            color = image.getpixel((invX-5, invY - 5))
-            draw.line((invX, invY, boardX, boardY), fill=color, width=2)
+            color = image.getpixel((invX - 5, invY - 5))
+            draw.line((invImgX, invImgY, boardImgX, boardImgY), fill=color, width=2)
             icon = get_aspect_icon_from_name(element)
             icon_width, icon_height = icon.size
-            image.paste(icon, (boardX - icon_width // 2, boardY - icon_height // 2), icon)
-            image.paste(icon, (invX - icon_width // 2, invY - icon_height // 2), icon)
+            image.paste(
+                icon, (boardImgX - icon_width // 2, boardImgY - icon_height // 2), icon
+            )
+            image.paste(icon, (invImgX - icon_width // 2, invImgY - icon_height // 2), icon)
 
         else:
             gui.moveTo(invX, invY)
