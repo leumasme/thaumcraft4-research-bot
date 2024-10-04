@@ -220,7 +220,7 @@ def pathfind_and_connect_coords(
             )
             image.paste(icon, (invImgX - icon_width // 2, invImgY - icon_height // 2), icon)
 
-        else:
+            # else:
             gui.moveTo(invX, invY)
             sleep(0.1)
             gui.dragTo(boardX, boardY)
@@ -239,27 +239,65 @@ def main():
 
     grid = HexGrid()
     build_grid(columns, valid_y_coords, grid, smallest_y_diff)
+    print("Grid:", grid.grid)
     # print("Start neighbors:", grid.get_neighbors((0, 11)))
     # print all aspects from grid that are bot free and save a list of them
     start_aspects: list[Tuple[int, int]] = []
     for (grid_x, grid_y), (name, (img_x, img_y)) in grid.grid.items():
-        if name != "Free":
+        if name != "Free" and name != "Missing":
             start_aspects.append((grid_x, grid_y))
     # pprint(start_aspects)
     # paths_to_connect so that they create a loop
     # {name+i: (name, (grid_x, grid_y)} that are not free
-    start_aspects_dict = {}
-    # key is (grid_x,grid_y) value is (name, (display_x, display_y))
-    for i, ((grid_x, grid_y), (name, (img_x, img_y))) in enumerate(grid.grid.items()):
-        if name != "Free" and name != "Missing":
-            start_aspects_dict[f"{name}_{i}"] = (grid_x, grid_y)
-    pprint(start_aspects_dict)
+    # start_aspects_dict = {}
+    # # key is (grid_x,grid_y) value is (name, (display_x, display_y))
+    # for i, ((grid_x, grid_y), (name, (img_x, img_y))) in enumerate(grid.grid.items()):
+    #     if name != "Free" and name != "Missing":
+    #         start_aspects_dict[f"{name}_{i}"] = (grid_x, grid_y)
+    # pprint(start_aspects_dict)
     # return
+
+    # paths_to_connect = []
+    # for i in range(len(start_aspects)):
+    #     if i == 1: break
+    #     paths_to_connect.append((start_aspects[i], start_aspects[(i+1)%len(start_aspects)]))
+    # print(paths_to_connect)
+
+    # create paths_to_connect by finding the 2 closest neighbors of each aspect via pathfinding.
+    closest_neighbors = {}
+    for start_aspect in start_aspects:
+        neigh_paths = []  # How far is it to each of the other aspects?
+        for other in start_aspects:
+            if other == start_aspect:
+                continue
+            try:
+                neigh_paths.append((other, len(grid.pathfind(start_aspect, other))))
+            except:
+                print("Pathfind from", start_aspect, "to", other, "failed")
+                continue
+        # Take closest 2 other aspects and store
+        neigh_paths.sort(key=lambda x: x[1])
+        closest_neighbors[start_aspect] = neigh_paths[:2]
+
+    print("Closest neighbors:", closest_neighbors)
+
     paths_to_connect = []
-    for i in range(len(start_aspects)):
-        if i == 1: break
-        paths_to_connect.append((start_aspects[i], start_aspects[(i+1)%len(start_aspects)]))
-    print(paths_to_connect)
+    seen_hexes = set()
+    current_start = start_aspects[0]
+    while True:
+        seen_hexes.add(current_start)
+        neigh_a, neigh_b = closest_neighbors[current_start]
+        if neigh_a[0] not in seen_hexes:
+            paths_to_connect.append((current_start, neigh_a[0]))
+            current_start = neigh_a[0]
+        elif neigh_b[0] not in seen_hexes:
+            paths_to_connect.append((current_start, neigh_b[0]))
+            current_start = neigh_b[0]
+        else:
+            break
+    
+    print("Paths to connect:", paths_to_connect)
+
     # # create paths_to_connect, list of all combinations of start_aspects
     # paths_to_connect = list(itertools.combinations(start_aspects, 2))
     # print("A")
@@ -304,7 +342,8 @@ def main():
             print(e)
 
     for (grid_x, grid_y), (name, (img_x, img_y)) in grid.grid.items():
-        draw.text((img_x, img_y), f"{grid_x}/{grid_y}")
+        color = "red" if name == "Missing" else "green"
+        draw.text((img_x, img_y), f"{grid_x}/{grid_y}", color=color)
 
     image.save("debug_test22.png")
 
