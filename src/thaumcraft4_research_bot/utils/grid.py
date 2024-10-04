@@ -7,11 +7,9 @@ from thaumcraft4_research_bot.utils.aspects import find_all_element_paths_of_len
 
 class HexGrid:
     grid: Dict[Tuple[int, int], Tuple[str, Tuple[int, int]]]
-    applied_paths: List[List[Tuple[str, Tuple[int, int]]]]
 
     def __init__(self) -> None:
         self.grid = {}
-        self.applied_paths = []
 
     def set_hex(
         self, coord: Tuple[int, int], value: str, pixelCoord: Tuple[int, int]
@@ -43,7 +41,9 @@ class HexGrid:
 
         return neighbors_with_values
 
-    def pathfind_board_shortest(self, start: Tuple[int, int], end: Tuple[int, int]) -> List[Tuple[int, int]]:
+    def pathfind_board_shortest(
+        self, start: Tuple[int, int], end: Tuple[int, int]
+    ) -> List[Tuple[int, int]]:
         print("Pathfinding from", start, "to", end)
         seen = {start: (0, None)}
         queue = [start]
@@ -66,7 +66,7 @@ class HexGrid:
                 step = seen[step][1]
             path.reverse()
 
-            print("Found", len(path), "board paths")
+            print("Found length", len(path), "board path")
 
             return path
 
@@ -80,6 +80,7 @@ class HexGrid:
         all_paths = []
 
         def dfs(current: Tuple[int, int], path: List[Tuple[int, int]]):
+            # print("DFS stepping to", current, "with path", path)
             if len(path) > n:
                 return
 
@@ -89,12 +90,23 @@ class HexGrid:
 
             for neighbor in self.get_neighbors(current):
                 neighbor_value = self.get_value(neighbor)
+                # print("DFS looking at neighbor", neighbor, "with value", neighbor_value)
                 if neighbor not in path and (
                     neighbor_value == "Free" or neighbor == end
                 ):
                     path.append(neighbor)
                     dfs(neighbor, path)
                     path.pop()
+                # else:
+                #     print(
+                #         "DFS neighbor",
+                #         neighbor,
+                #         "is not valid",
+                #         neighbor not in path,
+                #         neighbor_value == "Free",
+                #         neighbor == end,
+                #     )
+                #     print(self.applied_paths)
 
         dfs(start, [start])
 
@@ -109,9 +121,17 @@ class HexGrid:
         # if required_length is None:
 
         shortest_board_path = self.pathfind_board_shortest(start, end)
-        board_paths = self.pathfind_board_of_length(start, end, len(shortest_board_path))
+        board_paths = self.pathfind_board_of_length(
+            start, end, len(shortest_board_path)
+        )
         if len(board_paths) == 0:
-            print("pathfind_both found no board paths", start, end)
+            print(
+                "pathfind_both found no board paths",
+                start,
+                end,
+                "of length",
+                len(shortest_board_path),
+            )
             return [], []
 
         start_value = self.get_value(start)
@@ -135,28 +155,57 @@ class HexGrid:
 
         return board_paths, element_paths
 
+
+class SolvingHexGrid(HexGrid):
+    applied_paths: List[List[Tuple[str, Tuple[int, int]]]]
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.applied_paths = []
+
     def apply_path(self, path: List[Tuple[int, int]], element_path: List[str]) -> None:
-        for coord, element in zip(path[1:-1], element_path[1:-1]):
-            self.set_value(coord, element)
         self.applied_paths.append(list(zip(element_path, path)))
-        print("Applied paths is now", self.applied_paths)
+        print("Append internal, Applied paths is now", self.applied_paths)
 
     def pathfind_both_and_update_grid(
         self, start: Tuple[int, int], end: Tuple[int, int]
-    ) -> None:
+    ):
         board_paths, element_paths = self.pathfind_both(start, end)
         if len(board_paths) == 0:
             raise Exception("No paths found", start, end)
         # Element paths are already sorted so cheapest path is first
         self.apply_path(board_paths[0], element_paths[0])
         print("Pathfind and update grid success!")
+        return board_paths, element_paths[0]
 
-    def calculate_total_value(self) -> int:
+    def get_value(self, coord: Tuple[int, int]) -> Optional[str]:
+        # Check applied paths first
+        for path in reversed(self.applied_paths):
+            for element, path_coord in path:
+                if path_coord == coord:
+                    return element
+        # Fallback to the grid
+        # print("Get value for", coord, "is falling back to", super().get_value(coord))
+        return super().get_value(coord)
+
+    def get_pixel_location(self, coord: Tuple[int, int]) -> Tuple[int, int]:
+        # Check applied paths first
+        for path in reversed(self.applied_paths):
+            for _, path_coord in path:
+                if path_coord == coord:
+                    return self.grid[path_coord][1]
+        # Fallback to the grid
+        return super().get_pixel_location(coord)
+
+    def calculate_cost(self) -> int:
         current_sum = 0
-        for _, (value, _) in self.grid.items():
+        for value, _ in self.applied_paths:
             if value in aspect_costs and aspect_costs[value] is not None:
                 current_sum += aspect_costs[value]
         return current_sum
 
-    def copy(self) -> "HexGrid":
-        return deepcopy(self)
+    @classmethod
+    def from_hexgrid(cls, hexgrid: HexGrid) -> "SolvingHexGrid":
+        solving_hexgrid = cls()
+        solving_hexgrid.grid = deepcopy(hexgrid.grid)
+        return solving_hexgrid

@@ -12,7 +12,7 @@ import pathlib
 from thaumcraft4_research_bot.utils.aspectobj import Aspect, AspectManager
 from thaumcraft4_research_bot.utils.window import *
 from thaumcraft4_research_bot.utils.finder import *
-from thaumcraft4_research_bot.utils.grid import HexGrid
+from thaumcraft4_research_bot.utils.grid import HexGrid, SolvingHexGrid
 from thaumcraft4_research_bot.utils.aspects import find_all_element_paths_of_length_n
 from thaumcraft4_research_bot.utils.colors import aspect_colors
 from thaumcraft4_research_bot.utils.solvers.ringsolver import solve as ringsolver_solve
@@ -158,73 +158,6 @@ def build_grid(columns, valid_y_coords, grid: HexGrid, smallest_y_diff):
     print("Grid is", grid.grid)
 
 
-def _DEAD_pathfind_and_connect_coords(
-    grid: HexGrid,
-    inventory_aspects: list[Tuple[Tuple[int, int], str]],
-    window_base_coords: Tuple[int, int],
-    start: Tuple[int, int],
-    end: Tuple[int, int],
-    test_mode: bool,
-    draw: ImageDraw.ImageDraw,
-    image: PIL.Image.Image,
-):
-    board_path = grid.pathfind_board_shortest(start, end)
-    print("Board Path:", board_path)
-
-    start_aspect = grid.get_value(start)
-    end_aspect = grid.get_value(end)
-    element_paths = find_all_element_paths_of_length_n(
-        start_aspect, end_aspect, len(board_path)
-    )
-    # element_paths = aspect_manager.build_element_route(start_aspect, end_aspect, len(board_path) - 2)
-
-    if not element_paths:
-        print(
-            "!!! Found no element paths between",
-            start_aspect,
-            "and",
-            end_aspect,
-            "in length",
-            len(board_path),
-        )
-        return
-
-    selected_element_path = element_paths[0]
-    print("Element Path:", selected_element_path)
-
-    for board_coord, element in zip(board_path[1:-1], selected_element_path[1:-1]):
-        inventory_location = next(
-            (loc for loc, name in inventory_aspects if name == element), None
-        )
-        if inventory_location is None:
-            print("Could not find aspect", element, "in inventory", inventory_aspects)
-            continue
-
-        invImgX, invImgY = get_center_of_box(inventory_location)
-        boardImgX, boardImgY = grid.get_pixel_location(board_coord)
-
-        invX, invY = add_offset(window_base_coords, (invImgX, invImgY))
-        boardX, boardY = add_offset(window_base_coords, (boardImgX, boardImgY))
-
-        if test_mode:
-            color = image.getpixel((invX - 5, invY - 5))
-            draw.line((invImgX, invImgY, boardImgX, boardImgY), fill=color, width=2)
-            icon = get_aspect_icon_from_name(element)
-            icon_width, icon_height = icon.size
-            image.paste(
-                icon, (boardImgX - icon_width // 2, boardImgY - icon_height // 2), icon
-            )
-            image.paste(
-                icon, (invImgX - icon_width // 2, invImgY - icon_height // 2), icon
-            )
-
-            # else:
-            gui.moveTo(invX, invY)
-            sleep(0.1)
-            gui.dragTo(boardX, boardY)
-            sleep(0.1)
-
-
 def main():
     image, window_base_coords = setup_image(False)
     draw = ImageDraw.Draw(image)
@@ -237,35 +170,33 @@ def main():
     grid = HexGrid()
     build_grid(columns, valid_y_coords, grid, smallest_y_diff)
     print("Grid:", grid.grid)
-    
+
     start_aspects: list[Tuple[int, int]] = []
-    for (grid_x, grid_y), (name, (img_x, img_y)) in grid.grid.items():
+    for (grid_x, grid_y), (name, _) in grid.grid.items():
         if name != "Free" and name != "Missing":
             start_aspects.append((grid_x, grid_y))
 
-
-    # bla = grid.pathfind_board_shortest((0, 6), (2, 0))
+    # bla = grid.pathfind_board_shortest((0, 12), (3, 15))
     # print(bla)
-    # rab = grid.pathfind_board_of_length((0, 6), (2, 0), len(bla))
+    # rab = grid.pathfind_board_of_length((0, 12), (3, 15), len(bla))
     # print(rab)
-    # return
+    
+    solved: SolvingHexGrid
+    # try:
+    solved = ringsolver_solve(grid, start_aspects)
+    # except Exception as e:
+    #     print("Ringsolver failed to solve", e)
 
-    attempt_grid = grid.copy()
-    try:
-        ringsolver_solve(attempt_grid, start_aspects)
-    except:
-        print("Ringsolver failed to solve")
-
-    grid = attempt_grid
-
-    print(grid.applied_paths)    
     # for path in grid.applied_paths:
     #     for aspect, coord in path[1:-1]:
     #         place_aspect_at(window_base_coords, inventory_aspects, grid, aspect, coord)
 
-    draw_board_coords(grid, draw)
-    for path in grid.applied_paths:
-        draw_board_path(image, grid, path)
+    draw_board_coords(solved, draw)
+    
+    print("Applied paths is", solved.applied_paths)
+
+    for path in solved.applied_paths:
+        draw_board_path(image, solved, path)
     image.save("debug_render.png")
 
 
