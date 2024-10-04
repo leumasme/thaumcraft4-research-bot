@@ -27,6 +27,7 @@ class HexGrid:
 
     def get_neighbors(self, coord: Tuple[int, int]) -> List[Tuple[int, int]]:
         q, r = coord
+        # todo: maybe sort neighbors by distance to center to promote going towards center?
         neighbor_deltas = [(0, 2), (1, 1), (1, -1), (0, -2), (-1, -1), (-1, 1)]
 
         neighbors_with_values = []
@@ -80,7 +81,6 @@ class HexGrid:
         all_paths = []
 
         def dfs(current: Tuple[int, int], path: List[Tuple[int, int]]):
-            # print("DFS stepping to", current, "with path", path)
             if len(path) > n:
                 return
 
@@ -90,23 +90,12 @@ class HexGrid:
 
             for neighbor in self.get_neighbors(current):
                 neighbor_value = self.get_value(neighbor)
-                # print("DFS looking at neighbor", neighbor, "with value", neighbor_value)
                 if neighbor not in path and (
                     neighbor_value == "Free" or neighbor == end
                 ):
                     path.append(neighbor)
                     dfs(neighbor, path)
                     path.pop()
-                # else:
-                #     print(
-                #         "DFS neighbor",
-                #         neighbor,
-                #         "is not valid",
-                #         neighbor not in path,
-                #         neighbor_value == "Free",
-                #         neighbor == end,
-                #     )
-                #     print(self.applied_paths)
 
         dfs(start, [start])
 
@@ -119,6 +108,8 @@ class HexGrid:
         # use the imported find_all_element_paths_of_length_n(start_value, end_value, desired_length) -> list[list[str]]
         # it returns a list of element paths
         # if required_length is None:
+
+        print("Pathfind both from", start, "to", end)
 
         shortest_board_path = self.pathfind_board_shortest(start, end)
         board_paths = self.pathfind_board_of_length(

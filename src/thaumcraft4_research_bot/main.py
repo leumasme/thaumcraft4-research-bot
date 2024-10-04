@@ -183,13 +183,18 @@ def main():
     
     solved: SolvingHexGrid
     # try:
+    print("Starting solve computation")
+    start_time = time.time()
     solved = ringsolver_solve(grid, start_aspects)
+    end_time = time.time()
+
+    print(f"Time taken to compute solution: {end_time - start_time} seconds")
     # except Exception as e:
     #     print("Ringsolver failed to solve", e)
 
-    # for path in grid.applied_paths:
-    #     for aspect, coord in path[1:-1]:
-    #         place_aspect_at(window_base_coords, inventory_aspects, grid, aspect, coord)
+    for path in solved.applied_paths:
+        for aspect, coord in path[1:-1]:
+            place_aspect_at(window_base_coords, inventory_aspects, grid, aspect, coord)
 
     draw_board_coords(solved, draw)
     

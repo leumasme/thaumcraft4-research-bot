@@ -1,3 +1,5 @@
+from typing import List
+
 aspect_parents = {
     "aer": (None, None),
     "aqua": (None, None),
@@ -154,8 +156,7 @@ def find_all_element_paths_of_length_n(start: str, end: str, n: int):
     # Compute the total cost of each path using the precomputed aspect_costs
     path_costs = []
     for path in paths:
-        total_cost = sum(aspect_costs[aspect] for aspect in path)
-        path_costs.append((total_cost, path))
+        path_costs.append((calculate_cost_of_aspect_path(path), path))
 
     path_and_costs = list(zip(paths, path_costs))
     # Sort the paths by total cost
@@ -166,6 +167,8 @@ def find_all_element_paths_of_length_n(start: str, end: str, n: int):
 
     return paths
 
+def calculate_cost_of_aspect_path(path: List[str]) -> int:
+    return sum(aspect_costs[aspect] for aspect in path)
 
 # Example usage:
 # starts = ["aer", "ignis"]
