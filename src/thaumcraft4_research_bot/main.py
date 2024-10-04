@@ -19,8 +19,9 @@ from thaumcraft4_research_bot.utils.colors import colors
 
 aspect_manager = AspectManager()
 
+
 def setup_image(test_mode=True):
-    if test_mode:
+    if test_mode and False:
         image = PIL.Image.open("test2.png")
         window_base_coords = (0, 0)
     else:
@@ -41,6 +42,7 @@ def setup_image(test_mode=True):
 
     return image, window_base_coords
 
+
 def analyze_image(image):
     pixels = image.load()
 
@@ -57,11 +59,13 @@ def analyze_image(image):
     print(empty_hexagons)
 
     print("Aspects in inventory:")
-    inventory_aspects = find_aspects_in_frame(frame_aspects_left, pixels) + \
-                        find_aspects_in_frame(frame_aspects_right, pixels)
+    inventory_aspects = find_aspects_in_frame(
+        frame_aspects_left, pixels
+    ) + find_aspects_in_frame(frame_aspects_right, pixels)
     print(inventory_aspects)
 
     return board_aspects, empty_hexagons, inventory_aspects
+
 
 def group_hexagons(empty_hexagons, board_aspects, image_height):
     grouped = defaultdict(list)
@@ -119,7 +123,9 @@ def group_hexagons(empty_hexagons, board_aspects, image_height):
     for col in columns:
         for row_entry in col:
             x, y, value = row_entry
-            if any(abs(entry - y) < max(smallest_y_diff / 4, 5) for entry in valid_y_coords):
+            if any(
+                abs(entry - y) < max(smallest_y_diff / 4, 5) for entry in valid_y_coords
+            ):
                 continue
             valid_y_coords.append(y)
 
@@ -142,6 +148,7 @@ def build_grid(columns, valid_y_coords, grid, smallest_y_diff):
             grid.set_value((x_index, y_index), value, (x, y))
     print("Grid is", grid.grid)
 
+
 def get_aspect_icon_from_name(name):
     try:
         return PIL.Image.open(f"resources/aspects/color/{name}.png")
@@ -155,7 +162,9 @@ def pathfind_and_connect_coords(grid, inventory_aspects, window_base_coords, sta
 
     start_aspect = grid.get_value(start)
     end_aspect = grid.get_value(end)
-    element_paths = find_all_paths_of_length_n(start_aspect, end_aspect, len(board_path))
+    element_paths = find_all_paths_of_length_n(
+        start_aspect, end_aspect, len(board_path)
+    )
     # element_paths = aspect_manager.build_element_route(start_aspect, end_aspect, len(board_path) - 2)
 
     if not element_paths:
@@ -201,13 +210,16 @@ def pathfind_and_connect_coords(grid, inventory_aspects, window_base_coords, sta
             gui.dragTo(boardX, boardY)
             sleep(0.1)
 
+
 def main():
     test_mode = True
     image, window_base_coords = setup_image(test_mode)
     draw = ImageDraw.Draw(image)
 
     board_aspects, empty_hexagons, inventory_aspects = analyze_image(image)
-    columns, valid_y_coords, smallest_y_diff = group_hexagons(empty_hexagons, board_aspects, image.height)
+    columns, valid_y_coords, smallest_y_diff = group_hexagons(
+        empty_hexagons, board_aspects, image.height
+    )
 
     grid = HexGrid()
     build_grid(columns, valid_y_coords, grid, smallest_y_diff)
@@ -263,7 +275,14 @@ def main():
     for start, end in paths_to_connect:
         try:
             pathfind_and_connect_coords(
-                grid, inventory_aspects, window_base_coords, start, end, test_mode, draw, image
+                grid,
+                inventory_aspects,
+                window_base_coords,
+                start,
+                end,
+                test_mode,
+                draw,
+                image,
             )
         except Exception as e:
             print(e)
@@ -273,8 +292,10 @@ def main():
 
     image.save("debug_test22.png")
 
+
 if __name__ == "__main__":
     main()
+
 
 def test_element_list():
     elements = pathlib.Path("resources/aspects/color").glob("*.png")
@@ -289,13 +310,12 @@ def test_aspect():
     # print(aspect)
     aspect_manager = AspectManager()
 
-
     route_t = find_all_paths_of_length_n("tabernus", "alienis", 5)
     route_r = aspect_manager.build_element_route("tabernus", "alienis", 3)
     # pprint(route_t)
     # pprint(route_r)
     for path in route_t:
         print(path, aspect_manager.validate_element_route(path))
-    print("-"*100)
+    print("-" * 100)
     for path in route_r:
         print(path, aspect_manager.validate_element_route(path))
