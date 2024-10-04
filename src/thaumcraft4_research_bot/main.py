@@ -133,7 +133,8 @@ def group_hexagons(empty_hexagons, board_aspects, image_height):
     print(valid_y_coords)
     return columns, valid_y_coords, smallest_y_diff
 
-def build_grid(columns, valid_y_coords, grid, smallest_y_diff):
+
+def build_grid(columns, valid_y_coords, grid: HexGrid, smallest_y_diff):
     for x_index, col in enumerate(columns):
         for hex in col:
             x, y, value = hex
@@ -156,7 +157,17 @@ def get_aspect_icon_from_name(name):
         print(f"!!! Could not find aspect icon for {name}")
         return PIL.Image.open("resources/aspects/mono/perditio.png")
 
-def pathfind_and_connect_coords(grid, inventory_aspects, window_base_coords, start, end, test_mode, draw, image):
+
+def pathfind_and_connect_coords(
+    grid: HexGrid,
+    inventory_aspects: list[Tuple[Tuple[int, int], str]],
+    window_base_coords: Tuple[int, int],
+    start: Tuple[int, int],
+    end: Tuple[int, int],
+    test_mode: bool,
+    draw: ImageDraw.ImageDraw,
+    image: PIL.Image.Image,
+):
     board_path = grid.pathfind(start, end)
     print("Board Path:", board_path)
 
@@ -225,7 +236,7 @@ def main():
     build_grid(columns, valid_y_coords, grid, smallest_y_diff)
     # print("Start neighbors:", grid.get_neighbors((0, 11)))
     # print all aspects from grid that are bot free and save a list of them
-    start_aspects = []
+    start_aspects: list[Tuple[int, int]] = []
     for (grid_x, grid_y), (name, (img_x, img_y)) in grid.grid.items():
         if name != "Free":
             start_aspects.append((grid_x, grid_y))
