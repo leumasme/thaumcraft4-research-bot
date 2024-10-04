@@ -116,7 +116,7 @@ while remaining_aspects:
         break
 
 
-def find_all_paths_of_length_n(start: str, end: str, n: int):
+def find_all_element_paths_of_length_n(start: str, end: str, n: int):
     """
     Find all paths of length n between start and end in the graph.
     """
@@ -149,7 +149,7 @@ def find_all_paths_of_length_n(start: str, end: str, n: int):
 
     if len(paths) == 0:
         print("no aspect path found")
-        return list()
+        return []
 
     # Compute the total cost of each path using the precomputed aspect_costs
     path_costs = []

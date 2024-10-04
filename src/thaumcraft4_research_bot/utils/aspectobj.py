@@ -1,5 +1,5 @@
 from typing import Dict, List, Tuple, Optional
-from thaumcraft4_research_bot.utils.colors import colors, hex_to_rgb
+from thaumcraft4_research_bot.utils.colors import aspect_colors, hex_to_rgb
 import random
 
 class Aspect:
@@ -7,7 +7,7 @@ class Aspect:
         self.name: str = name
         self.parents: List[str] = [p for p in aspect_parents[name] if p is not None]
         self.children: List[str] = [k for k, v in aspect_parents.items() if name in v]
-        self.hex_color: str = colors.get(name, "000000")
+        self.hex_color: str = aspect_colors.get(name, "000000")
         self.rgb_color: Tuple[int, int, int] = hex_to_rgb(self.hex_color)
 
     @staticmethod

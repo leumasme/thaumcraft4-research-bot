@@ -13,16 +13,18 @@ from thaumcraft4_research_bot.utils.aspectobj import Aspect, AspectManager
 from thaumcraft4_research_bot.utils.window import *
 from thaumcraft4_research_bot.utils.finder import *
 from thaumcraft4_research_bot.utils.grid import HexGrid
-from thaumcraft4_research_bot.utils.aspects import find_all_paths_of_length_n
-from thaumcraft4_research_bot.utils.colors import colors
-
+from thaumcraft4_research_bot.utils.aspects import find_all_element_paths_of_length_n
+from thaumcraft4_research_bot.utils.colors import aspect_colors
+from thaumcraft4_research_bot.utils.solvers.ringsolver import solve as ringsolver_solve
+from thaumcraft4_research_bot.utils.renderer import *
+import time
 
 aspect_manager = AspectManager()
 
 
 def setup_image(test_mode=True):
-    if test_mode and False:
-        image = PIL.Image.open("test2.png")
+    if test_mode:
+        image = PIL.Image.open("debug_input.png")
         window_base_coords = (0, 0)
     else:
         window = find_game()
@@ -38,12 +40,12 @@ def setup_image(test_mode=True):
             sleep(0.5)
 
         image, window_base_coords = screenshot_window(window)
-        image.save("test.png")
+        image.save("debug_input.png")
 
     return image, window_base_coords
 
 
-def analyze_image(image):
+def analyze_image(image: PIL.Image.Image):
     pixels = image.load()
 
     frame_aspects_left = find_frame(image, pixels, (100, 123, 123))
@@ -59,9 +61,13 @@ def analyze_image(image):
     print(empty_hexagons)
 
     print("Aspects in inventory:")
+    start_time = time.time()
     inventory_aspects = find_aspects_in_frame(
         frame_aspects_left, pixels
     ) + find_aspects_in_frame(frame_aspects_right, pixels)
+    end_time = time.time()
+
+    print(f"Time taken to find inventory aspects: {end_time - start_time} seconds")
     print(inventory_aspects)
 
     return board_aspects, empty_hexagons, inventory_aspects
@@ -104,7 +110,9 @@ def group_hexagons(empty_hexagons, board_aspects, image_height):
             smallest_y_diff = difference_y
 
         if difference_y < 10:
-            raise Exception("Bad diff y, board is probably not clean:", difference_y, coords)
+            raise Exception(
+                "Bad diff y, board is probably not clean:", difference_y, coords
+            )
 
         column = [coords[0]]
         for i in range(len(coords) - 1):
@@ -146,19 +154,11 @@ def build_grid(columns, valid_y_coords, grid: HexGrid, smallest_y_diff):
             if y_index == -1:
                 raise Exception("Y value failure", y, valid_y_coords)
 
-            grid.set_value((x_index, y_index), value, (x, y))
+            grid.set_hex((x_index, y_index), value, (x, y))
     print("Grid is", grid.grid)
 
 
-def get_aspect_icon_from_name(name):
-    try:
-        return PIL.Image.open(f"resources/aspects/color/{name}.png")
-    except FileNotFoundError:
-        print(f"!!! Could not find aspect icon for {name}")
-        return PIL.Image.open("resources/aspects/mono/perditio.png")
-
-
-def pathfind_and_connect_coords(
+def _DEAD_pathfind_and_connect_coords(
     grid: HexGrid,
     inventory_aspects: list[Tuple[Tuple[int, int], str]],
     window_base_coords: Tuple[int, int],
@@ -168,12 +168,12 @@ def pathfind_and_connect_coords(
     draw: ImageDraw.ImageDraw,
     image: PIL.Image.Image,
 ):
-    board_path = grid.pathfind(start, end)
+    board_path = grid.pathfind_board_shortest(start, end)
     print("Board Path:", board_path)
 
     start_aspect = grid.get_value(start)
     end_aspect = grid.get_value(end)
-    element_paths = find_all_paths_of_length_n(
+    element_paths = find_all_element_paths_of_length_n(
         start_aspect, end_aspect, len(board_path)
     )
     # element_paths = aspect_manager.build_element_route(start_aspect, end_aspect, len(board_path) - 2)
@@ -197,18 +197,14 @@ def pathfind_and_connect_coords(
             (loc for loc, name in inventory_aspects if name == element), None
         )
         if inventory_location is None:
-            print("Could not find aspect", element, "in", inventory_aspects)
+            print("Could not find aspect", element, "in inventory", inventory_aspects)
             continue
 
         invImgX, invImgY = get_center_of_box(inventory_location)
         boardImgX, boardImgY = grid.get_pixel_location(board_coord)
 
-        invX, invY = add_offset(
-            window_base_coords, (invImgX, invImgY)
-        )
-        boardX, boardY = add_offset(
-            window_base_coords, (boardImgX, boardImgY)
-        )
+        invX, invY = add_offset(window_base_coords, (invImgX, invImgY))
+        boardX, boardY = add_offset(window_base_coords, (boardImgX, boardImgY))
 
         if test_mode:
             color = image.getpixel((invX - 5, invY - 5))
@@ -218,7 +214,9 @@ def pathfind_and_connect_coords(
             image.paste(
                 icon, (boardImgX - icon_width // 2, boardImgY - icon_height // 2), icon
             )
-            image.paste(icon, (invImgX - icon_width // 2, invImgY - icon_height // 2), icon)
+            image.paste(
+                icon, (invImgX - icon_width // 2, invImgY - icon_height // 2), icon
+            )
 
             # else:
             gui.moveTo(invX, invY)
@@ -228,8 +226,7 @@ def pathfind_and_connect_coords(
 
 
 def main():
-    test_mode = True
-    image, window_base_coords = setup_image(test_mode)
+    image, window_base_coords = setup_image(False)
     draw = ImageDraw.Draw(image)
 
     board_aspects, empty_hexagons, inventory_aspects = analyze_image(image)
@@ -240,122 +237,72 @@ def main():
     grid = HexGrid()
     build_grid(columns, valid_y_coords, grid, smallest_y_diff)
     print("Grid:", grid.grid)
-    # print("Start neighbors:", grid.get_neighbors((0, 11)))
-    # print all aspects from grid that are bot free and save a list of them
+    
     start_aspects: list[Tuple[int, int]] = []
     for (grid_x, grid_y), (name, (img_x, img_y)) in grid.grid.items():
         if name != "Free" and name != "Missing":
             start_aspects.append((grid_x, grid_y))
-    # pprint(start_aspects)
-    # paths_to_connect so that they create a loop
-    # {name+i: (name, (grid_x, grid_y)} that are not free
-    # start_aspects_dict = {}
-    # # key is (grid_x,grid_y) value is (name, (display_x, display_y))
-    # for i, ((grid_x, grid_y), (name, (img_x, img_y))) in enumerate(grid.grid.items()):
-    #     if name != "Free" and name != "Missing":
-    #         start_aspects_dict[f"{name}_{i}"] = (grid_x, grid_y)
-    # pprint(start_aspects_dict)
+
+
+    # bla = grid.pathfind_board_shortest((0, 6), (2, 0))
+    # print(bla)
+    # rab = grid.pathfind_board_of_length((0, 6), (2, 0), len(bla))
+    # print(rab)
     # return
 
-    # paths_to_connect = []
-    # for i in range(len(start_aspects)):
-    #     if i == 1: break
-    #     paths_to_connect.append((start_aspects[i], start_aspects[(i+1)%len(start_aspects)]))
-    # print(paths_to_connect)
+    attempt_grid = grid.copy()
+    try:
+        ringsolver_solve(attempt_grid, start_aspects)
+    except:
+        print("Ringsolver failed to solve")
 
-    # create paths_to_connect by finding the 2 closest neighbors of each aspect via pathfinding.
-    closest_neighbors = {}
-    for start_aspect in start_aspects:
-        neigh_paths = []  # How far is it to each of the other aspects?
-        for other in start_aspects:
-            if other == start_aspect:
-                continue
-            try:
-                neigh_paths.append((other, len(grid.pathfind(start_aspect, other))))
-            except:
-                print("Pathfind from", start_aspect, "to", other, "failed")
-                continue
-        # Take closest 2 other aspects and store
-        neigh_paths.sort(key=lambda x: x[1])
-        closest_neighbors[start_aspect] = neigh_paths[:2]
+    grid = attempt_grid
 
-    print("Closest neighbors:", closest_neighbors)
+    print(grid.applied_paths)    
+    # for path in grid.applied_paths:
+    #     for aspect, coord in path[1:-1]:
+    #         place_aspect_at(window_base_coords, inventory_aspects, grid, aspect, coord)
 
-    paths_to_connect = []
-    seen_hexes = set()
-    current_start = start_aspects[0]
-    while True:
-        seen_hexes.add(current_start)
-        neigh_a, neigh_b = closest_neighbors[current_start]
-        if neigh_a[0] not in seen_hexes:
-            paths_to_connect.append((current_start, neigh_a[0]))
-            current_start = neigh_a[0]
-        elif neigh_b[0] not in seen_hexes:
-            paths_to_connect.append((current_start, neigh_b[0]))
-            current_start = neigh_b[0]
-        else:
-            break
-    
-    print("Paths to connect:", paths_to_connect)
-
-    # # create paths_to_connect, list of all combinations of start_aspects
-    # paths_to_connect = list(itertools.combinations(start_aspects, 2))
-    # print("A")
-    # print(paths_to_connect)
-    # create len(start_aspects) -1 paths_to_connect
-    # paths_to_connect = []
-    # for i in range(len(start_aspects)):
-    #     for j in range(i + 1, len(start_aspects)):
-    #         paths_to_connect.append((start_aspects[i], start_aspects[j]))
-    # print(paths_to_connect)
-
-    # Define the paths to connect
-    # paths_to_connect = [
-    #     ((0, 11), (1, 2)),
-    #     ((1, 2), (6, 1)),
-    #     ((6, 1), (8, 7)),
-    #     ((8, 7), (5, 14)),
-    #     ((5, 14), (0, 11))
-    # ]
-    # paths_to_connect = [
-    #     ((0, 6), (2, 0)),
-    #     ((1, 2), (6, 1)),
-    #     ((6, 1), (8, 7)),
-    #     ((8, 7), (5, 14)),
-    #     ((5, 14), (0, 11))
-    # ]
-    # paths_to_connect = [((0, 6), (2, 0))]
-
-    for start, end in paths_to_connect:
-        try:
-            pathfind_and_connect_coords(
-                grid,
-                inventory_aspects,
-                window_base_coords,
-                start,
-                end,
-                test_mode,
-                draw,
-                image,
-            )
-        except Exception as e:
-            print(e)
-
-    for (grid_x, grid_y), (name, (img_x, img_y)) in grid.grid.items():
-        color = "red" if name == "Missing" else "green"
-        draw.text((img_x, img_y), f"{grid_x}/{grid_y}", color=color)
-
-    image.save("debug_test22.png")
+    draw_board_coords(grid, draw)
+    for path in grid.applied_paths:
+        draw_board_path(image, grid, path)
+    image.save("debug_render.png")
 
 
 if __name__ == "__main__":
     main()
 
 
+def place_aspect_at(
+    window_base_coords,
+    inventory_aspects,
+    grid: HexGrid,
+    aspect: str,
+    board_coord: Tuple[int, int],
+):
+    inventory_location = next(
+        (loc for loc, name in inventory_aspects if name == aspect), None
+    )
+    if inventory_location is None:
+        print("Could not find aspect", aspect, "in inventory", inventory_aspects)
+        return
+
+    invImgX, invImgY = get_center_of_box(inventory_location)
+    boardImgX, boardImgY = grid.get_pixel_location(board_coord)
+
+    invX, invY = add_offset(window_base_coords, (invImgX, invImgY))
+    boardX, boardY = add_offset(window_base_coords, (boardImgX, boardImgY))
+
+    gui.moveTo(invX, invY)
+    sleep(0.1)
+    gui.dragTo(boardX, boardY)
+    sleep(0.1)
+
+
 def test_element_list():
     elements = pathlib.Path("resources/aspects/color").glob("*.png")
     elements = [e.stem for e in elements]
-    for color in colors.keys():
+    for color in aspect_colors.keys():
         if color not in elements:
             print(color)
 
@@ -365,7 +312,7 @@ def test_aspect():
     # print(aspect)
     aspect_manager = AspectManager()
 
-    route_t = find_all_paths_of_length_n("tabernus", "alienis", 5)
+    route_t = find_all_element_paths_of_length_n("tabernus", "alienis", 5)
     route_r = aspect_manager.build_element_route("tabernus", "alienis", 3)
     # pprint(route_t)
     # pprint(route_r)
