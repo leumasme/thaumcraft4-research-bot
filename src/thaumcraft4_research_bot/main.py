@@ -100,7 +100,7 @@ def group_hexagons(empty_hexagons, board_aspects, image_height):
             smallest_y_diff = difference_y
 
         if difference_y < 10:
-            print("!!!! bad diff y", difference_y, coords)
+            raise Exception("Bad diff y, board is probably not clean:", difference_y, coords)
 
         column = [coords[0]]
         for i in range(len(coords) - 1):
