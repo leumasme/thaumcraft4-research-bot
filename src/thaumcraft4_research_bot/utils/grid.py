@@ -209,9 +209,10 @@ class SolvingHexGrid(HexGrid):
 
     def calculate_cost(self) -> int:
         current_sum = 0
-        for value, _ in self.applied_paths:
-            if value in aspect_costs and aspect_costs[value] is not None:
-                current_sum += aspect_costs[value]
+        for path in self.applied_paths:
+            for value, _ in path:
+                if value in aspect_costs and aspect_costs[value] is not None:
+                    current_sum += aspect_costs[value]
         return current_sum
 
     @classmethod
