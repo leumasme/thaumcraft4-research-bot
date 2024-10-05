@@ -180,6 +180,12 @@ def main():
         board_aspects, empty_hexagons, new_inventory_aspects = analyze_image(image, inventory_aspects is not None)
         if inventory_aspects is None:
             inventory_aspects = new_inventory_aspects
+            missing = False
+            for aspect, (parent_a, parent_b) in aspect_parents.items():
+                if not any([name == aspect for _, name in inventory_aspects]):
+                    missing = True
+                    print(f"WARNING: Missing aspect {aspect} from inventory (made from {parent_a} + {parent_b})")
+            if missing: raise Exception("Missing aspects from inventory... safety shutdown")
 
         columns, valid_y_coords, smallest_y_diff = group_hexagons(
             empty_hexagons, board_aspects, image.height
