@@ -17,6 +17,7 @@ from thaumcraft4_research_bot.utils.renderer import *
 # Disable 0.1 seconds delay between each pyautogui call
 gui.PAUSE = 0
 
+
 def setup_image(test_mode=True, skip_focus=False):
     if test_mode:
         image = PIL.Image.open("debug_input.png")
@@ -58,7 +59,7 @@ def analyze_image(image: PIL.Image.Image, skip_inventory=False):
 
     if skip_inventory:
         return board_aspects, empty_hexagons, []
-    
+
     print("Aspects in inventory:")
     start_time = time.time()
     inventory_aspects = find_aspects_in_frame(
@@ -136,17 +137,13 @@ def group_hexagons(empty_hexagons, board_aspects, image_height):
                 continue
             valid_y_coords.append(y)
 
-
-
     valid_y_coords.sort()
 
     # Patch holes in valid y coords
     for i in range(len(valid_y_coords) - 1):
         if valid_y_coords[i + 1] - valid_y_coords[i] > 0.75 * smallest_y_diff:
             print("Fixing Y-hole between", valid_y_coords[i], valid_y_coords[i + 1])
-            valid_y_coords.append(
-                valid_y_coords[i] + smallest_y_diff * 0.5
-            )
+            valid_y_coords.append(valid_y_coords[i] + smallest_y_diff * 0.5)
 
     valid_y_coords.sort()
     print("Valid Y coords:", valid_y_coords)
@@ -174,18 +171,25 @@ def main():
     inventory_aspects: list[Tuple[Tuple[int, int, int, int], str]] = None
     test_mode = True
     while True:
-        image, window_base_coords = setup_image(test_mode, inventory_aspects is not None)
+        image, window_base_coords = setup_image(
+            test_mode, inventory_aspects is not None
+        )
         draw = ImageDraw.Draw(image)
 
-        board_aspects, empty_hexagons, new_inventory_aspects = analyze_image(image, inventory_aspects is not None)
+        board_aspects, empty_hexagons, new_inventory_aspects = analyze_image(
+            image, inventory_aspects is not None
+        )
         if inventory_aspects is None:
             inventory_aspects = new_inventory_aspects
             missing = False
             for aspect, (parent_a, parent_b) in aspect_parents.items():
                 if not any([name == aspect for _, name in inventory_aspects]):
                     missing = True
-                    print(f"WARNING: Missing aspect {aspect} from inventory (made from {parent_a} + {parent_b})")
-            if missing: raise Exception("Missing aspects from inventory... safety shutdown")
+                    print(
+                        f"WARNING: Missing aspect {aspect} from inventory (made from {parent_a} + {parent_b})"
+                    )
+            if missing:
+                raise Exception("Missing aspects from inventory... safety shutdown")
 
         columns, valid_y_coords, smallest_y_diff = group_hexagons(
             empty_hexagons, board_aspects, image.height
