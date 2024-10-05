@@ -42,6 +42,22 @@ class HexGrid:
 
         return neighbors_with_values
 
+    def score_distance_from_center(self, coords: List[Tuple[int, int]]) -> int:
+        # Distance from center, for guiding path selection towards the center. Lower is better.
+        bottom = 0
+        right = 0
+        for _, (x, y) in self.grid.values():
+            bottom = max(bottom, y)
+            right = max(right, x)
+        center_x = right / 2
+        center_y = bottom / 2
+        total_distance = 0
+        for x, y in coords:
+            # y-axis is stretched 2x so we reduce its value back to match
+            total_distance += abs(center_x - x) + abs(center_y - y) / 2
+
+        return total_distance
+
     def pathfind_board_shortest(
         self, start: Tuple[int, int], end: Tuple[int, int]
     ) -> List[Tuple[int, int]]:
@@ -116,14 +132,14 @@ class HexGrid:
             start, end, len(shortest_board_path)
         )
         if len(board_paths) == 0:
-            print(
+            raise Exception(
                 "pathfind_both found no board paths",
                 start,
                 end,
                 "of length",
                 len(shortest_board_path),
             )
-            return [], []
+            # return [], []
 
         start_value = self.get_value(start)
         end_value = self.get_value(end)
@@ -144,7 +160,7 @@ class HexGrid:
                 start_value, end_value, required_length
             )
 
-        # TODO: maybe sort board paths to push into the center?
+        board_paths.sort(key=lambda x: self.score_distance_from_center(x))
 
         return board_paths, element_paths
 
