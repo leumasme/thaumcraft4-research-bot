@@ -155,6 +155,9 @@ class HexGrid:
             board_paths = self.pathfind_board_of_length(start, end, required_length)
             if len(board_paths) == 0:
                 print("!!! When trying to extend path length, found no board paths")
+                if required_length > len(self.grid):
+                    raise Exception("Failed to find a path in extending phase")
+                    # return [], []
                 continue
             element_paths = find_all_element_paths_of_length_n(
                 start_value, end_value, required_length
