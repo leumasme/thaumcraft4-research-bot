@@ -1,12 +1,11 @@
 from collections import defaultdict
-import itertools
 from pprint import pprint
 import pyautogui as gui
 from time import sleep
 from PIL import ImageDraw
 import PIL.Image
 from typing import Tuple
-import pathlib
+import time
 
 # Local libs
 from thaumcraft4_research_bot.utils.aspectobj import Aspect, AspectManager
@@ -17,7 +16,6 @@ from thaumcraft4_research_bot.utils.aspects import find_all_element_paths_of_len
 from thaumcraft4_research_bot.utils.colors import aspect_colors
 from thaumcraft4_research_bot.utils.solvers.ringsolver import solve as ringsolver_solve
 from thaumcraft4_research_bot.utils.renderer import *
-import time
 
 aspect_manager = AspectManager()
 
@@ -176,28 +174,20 @@ def main():
         if name != "Free" and name != "Missing":
             start_aspects.append((grid_x, grid_y))
 
-    # bla = grid.pathfind_board_shortest((0, 12), (3, 15))
-    # print(bla)
-    # rab = grid.pathfind_board_of_length((0, 12), (3, 15), len(bla))
-    # print(rab)
-    
     solved: SolvingHexGrid
-    # try:
     print("Starting solve computation")
     start_time = time.time()
     solved = ringsolver_solve(grid, start_aspects)
     end_time = time.time()
 
     print(f"Time taken to compute solution: {end_time - start_time} seconds")
-    # except Exception as e:
-    #     print("Ringsolver failed to solve", e)
 
     for path in solved.applied_paths:
         for aspect, coord in path[1:-1]:
             place_aspect_at(window_base_coords, inventory_aspects, grid, aspect, coord)
 
     draw_board_coords(solved, draw)
-    
+
     print("Applied paths is", solved.applied_paths)
 
     for path in solved.applied_paths:
@@ -233,27 +223,3 @@ def place_aspect_at(
     sleep(0.1)
     gui.dragTo(boardX, boardY)
     sleep(0.1)
-
-
-def test_element_list():
-    elements = pathlib.Path("resources/aspects/color").glob("*.png")
-    elements = [e.stem for e in elements]
-    for color in aspect_colors.keys():
-        if color not in elements:
-            print(color)
-
-
-def test_aspect():
-    aspect = Aspect("aer")
-    # print(aspect)
-    aspect_manager = AspectManager()
-
-    route_t = find_all_element_paths_of_length_n("tabernus", "alienis", 5)
-    route_r = aspect_manager.build_element_route("tabernus", "alienis", 3)
-    # pprint(route_t)
-    # pprint(route_r)
-    for path in route_t:
-        print(path, aspect_manager.validate_element_route(path))
-    print("-" * 100)
-    for path in route_r:
-        print(path, aspect_manager.validate_element_route(path))

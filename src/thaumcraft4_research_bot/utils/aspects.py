@@ -150,7 +150,7 @@ def find_all_element_paths_of_length_n(start: str, end: str, n: int):
     paths = [path for path in paths if path[-1] == end]
 
     if len(paths) == 0:
-        print("no aspect path found")
+        print("No aspect path found from", start, "to", end, "of length", n)
         return []
 
     # Compute the total cost of each path using the precomputed aspect_costs
@@ -167,8 +167,10 @@ def find_all_element_paths_of_length_n(start: str, end: str, n: int):
 
     return paths
 
+
 def calculate_cost_of_aspect_path(path: List[str]) -> int:
     return sum(aspect_costs[aspect] for aspect in path)
+
 
 # Example usage:
 # starts = ["aer", "ignis"]

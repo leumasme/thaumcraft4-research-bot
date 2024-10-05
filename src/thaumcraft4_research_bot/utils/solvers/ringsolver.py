@@ -15,14 +15,18 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
                 continue
             # try:
             print("Ringsolver is Pathfinding from", start_aspect, "to", other)
-            neigh_paths.append((other, len(solving.pathfind_board_shortest(start_aspect, other))))
+            neigh_paths.append(
+                (other, len(solving.pathfind_board_shortest(start_aspect, other)))
+            )
             # except:
             #     print("Pathfind from", start_aspect, "to", other, "failed")
             #     continue
         # Take closest 2 other aspects and store
         neigh_paths.sort(key=lambda x: x[1])
         if len(neigh_paths) < 2:
-            raise Exception("Could not find 2 neighbors for", start_aspect, solving.grid)
+            raise Exception(
+                "Could not find 2 neighbors for", start_aspect, solving.grid
+            )
 
         closest_neighbors[start_aspect] = neigh_paths[:2]
 
@@ -30,7 +34,7 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
 
     nodes_to_connect = []
     seen_hexes = set()
-    current_start = start_aspects[1] # change index to change rotation
+    current_start = start_aspects[1]  # change index to change rotation
     while True:
         seen_hexes.add(current_start)
         neigh_a, neigh_b = closest_neighbors[current_start]
@@ -43,39 +47,40 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
         else:
             break
 
-
     # (type[], (x, y)[])[][]
     # different source-destination ; different alternate paths ; different steps of path
-    all_paths: List[List[Tuple[ List[Tuple[str]],List[Tuple[int, int]]] ]] = []
+    all_paths: List[List[Tuple[List[Tuple[str]], List[Tuple[int, int]]]]] = []
     path_indices: List[int] = []
-    index = 0 # write head
-
-    print("Beginning ring solver backtracking loop")
+    index = 0  # write head
 
     while index < len(nodes_to_connect):
         start, end = nodes_to_connect[index]
 
-        try: 
+        try:
             # todo: maybe sort board paths to push into the center?
             board_paths, element_paths = solving.pathfind_both(start, end)
-            # all_paths[index] = solving.pathfind_both_and_update_grid(start, end)
+
             path_indices.append(0)
-            # path_indices[index] = 0
 
             new_paths = [(element_paths[0], board_path) for board_path in board_paths]
 
-            different_target_paths = []
             for applied_path in solving.applied_paths:
                 for _, coords in applied_path[1:-1]:
                     try:
-                        # maybe could be made cheaper? maybe use bfs here?
-                        board_paths, element_paths = solving.pathfind_both(coords, end) # order matters!
-                        new_paths += [(element_paths[0], board_path) for board_path in board_paths]
+                        # maybe could be made cheaper? maybe use bfs here? TODO: do multiple paths at once!
+                        board_paths, element_paths = solving.pathfind_both(
+                            coords, end
+                        )  # order matters!
+                        new_paths += [
+                            (element_paths[0], board_path) for board_path in board_paths
+                        ]
 
                     except:
                         continue
 
-            new_paths.sort(key=lambda x: calculate_cost_of_aspect_path(x[0])) # todo: second grade sort by something else?
+            new_paths.sort(
+                key=lambda x: calculate_cost_of_aspect_path(x[0])
+            )  # todo: second grade sort by something else?
 
             all_paths.append(new_paths)
 
@@ -98,13 +103,13 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
 
                 path_indices.pop()
                 solving.applied_paths.pop()
-                print("Pop, Applied paths is now", solving.applied_paths)
-
             path_indices[index - 1] += 1
-            
-            current_elem_path, current_board_path = all_paths[index - 1][path_indices[index - 1]]
-            solving.applied_paths[index - 1] = list(zip(current_elem_path, current_board_path))
 
-            print("Set, Applied paths is now", solving.applied_paths)
+            current_elem_path, current_board_path = all_paths[index - 1][
+                path_indices[index - 1]
+            ]
+            solving.applied_paths[index - 1] = list(
+                zip(current_elem_path, current_board_path)
+            )
 
     return solving

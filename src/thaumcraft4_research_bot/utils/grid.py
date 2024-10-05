@@ -144,6 +144,8 @@ class HexGrid:
                 start_value, end_value, required_length
             )
 
+        # TODO: maybe sort board paths to push into the center?
+
         return board_paths, element_paths
 
 
@@ -156,7 +158,6 @@ class SolvingHexGrid(HexGrid):
 
     def apply_path(self, path: List[Tuple[int, int]], element_path: List[str]) -> None:
         self.applied_paths.append(list(zip(element_path, path)))
-        print("Append internal, Applied paths is now", self.applied_paths)
 
     def pathfind_both_and_update_grid(
         self, start: Tuple[int, int], end: Tuple[int, int]
@@ -166,7 +167,6 @@ class SolvingHexGrid(HexGrid):
             raise Exception("No paths found", start, end)
         # Element paths are already sorted so cheapest path is first
         self.apply_path(board_paths[0], element_paths[0])
-        print("Pathfind and update grid success!")
         return board_paths, element_paths[0]
 
     def get_value(self, coord: Tuple[int, int]) -> Optional[str]:

@@ -75,7 +75,9 @@ def hex_to_rgb(hex_color):
     return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
 
 
-rgb_to_aspect_map = {name: hex_to_rgb(hex_code) for name, hex_code in aspect_colors.items()}
+rgb_to_aspect_map = {
+    name: hex_to_rgb(hex_code) for name, hex_code in aspect_colors.items()
+}
 
 
 def rgb_to_aspect(rgb_color):
