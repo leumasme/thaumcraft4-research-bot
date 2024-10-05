@@ -1,6 +1,5 @@
 from typing import Dict, Tuple, Optional, List
 from copy import deepcopy
-from collections import deque
 from thaumcraft4_research_bot.utils.aspects import aspect_costs
 from thaumcraft4_research_bot.utils.aspects import find_all_element_paths_of_length_n
 

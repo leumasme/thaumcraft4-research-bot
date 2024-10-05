@@ -71,6 +71,7 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
 
         try:
             # todo: maybe sort board paths to push into the center?
+            print("Ringsolver stage 2 is Pathfinding from", start, "to", end)
             board_paths, element_paths = solving.pathfind_both(start, end)
 
             path_indices.append(0)
@@ -100,6 +101,7 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
             initial_elem_path, initial_board_path = new_paths[0]
 
             solving.apply_path(initial_board_path, initial_elem_path)
+            print("Ringsolver applied path from", initial_board_path[0], "to", initial_board_path[-1], " : ", initial_elem_path, initial_board_path)
             index += 1
 
             # TODO: do we still want to backtrack already if no direct connection is found?

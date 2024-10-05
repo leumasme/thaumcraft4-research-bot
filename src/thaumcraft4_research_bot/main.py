@@ -1,5 +1,4 @@
 from collections import defaultdict
-from pprint import pprint
 import pyautogui as gui
 from time import sleep
 from PIL import ImageDraw
@@ -8,16 +7,12 @@ from typing import Tuple
 import time
 
 # Local libs
-from thaumcraft4_research_bot.utils.aspectobj import Aspect, AspectManager
 from thaumcraft4_research_bot.utils.window import *
 from thaumcraft4_research_bot.utils.finder import *
 from thaumcraft4_research_bot.utils.grid import HexGrid, SolvingHexGrid
-from thaumcraft4_research_bot.utils.aspects import find_all_element_paths_of_length_n
-from thaumcraft4_research_bot.utils.colors import aspect_colors
+from thaumcraft4_research_bot.utils.aspects import aspect_parents
 from thaumcraft4_research_bot.utils.solvers.ringsolver import solve as ringsolver_solve
 from thaumcraft4_research_bot.utils.renderer import *
-
-aspect_manager = AspectManager()
 
 # Disable 0.1 seconds delay between each pyautogui call
 gui.PAUSE = 0
