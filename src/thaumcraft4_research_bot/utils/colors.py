@@ -62,7 +62,7 @@ aspect_colors = {
     "astrum": "2D2C2B",
     "alienis": "805080",
     "strontio": "EEC2B3",
-    "desida": "6E6E6E",
+    "desidia": "6E6E6E",
     "invidia": "00BA00",
     "vesania": "1B122C",
     "telum": "C05050",
