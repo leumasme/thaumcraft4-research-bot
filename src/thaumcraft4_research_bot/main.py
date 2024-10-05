@@ -141,8 +141,21 @@ def group_hexagons(empty_hexagons, board_aspects, image_height):
                 continue
             valid_y_coords.append(y)
 
+
+
     valid_y_coords.sort()
-    print(valid_y_coords)
+
+    # Patch holes in valid y coords
+    for i in range(len(valid_y_coords) - 1):
+        if valid_y_coords[i + 1] - valid_y_coords[i] > 0.75 * smallest_y_diff:
+            print("Fixing Y-hole between", valid_y_coords[i], valid_y_coords[i + 1])
+            valid_y_coords.append(
+                valid_y_coords[i] + smallest_y_diff * 0.5
+            )
+
+    valid_y_coords.sort()
+    print("Valid Y coords:", valid_y_coords)
+
     return columns, valid_y_coords, smallest_y_diff
 
 
