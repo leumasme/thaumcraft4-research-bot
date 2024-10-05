@@ -33,11 +33,15 @@ def draw_board_path(
 
         icon = get_aspect_icon_from_name(aspect)
         icon_width, icon_height = icon.size
-        image.paste(
-            icon,
-            (int(boardImgX - icon_width // 2), int(boardImgY - icon_height // 2)),
-            icon,
-        )
+        # todo corpus is broken
+        try:
+            image.paste(
+                icon,
+                (int(boardImgX - icon_width // 2), int(boardImgY - icon_height // 2)),
+                icon,
+            )
+        except:
+            print("Failed to paste icon for", aspect, "at", boardImgX, boardImgY)
 
 
 def draw_placing_hints(
