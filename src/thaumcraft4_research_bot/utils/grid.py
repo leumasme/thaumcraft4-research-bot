@@ -45,7 +45,7 @@ class HexGrid:
     def pathfind_board_shortest(
         self, start: Tuple[int, int], end: Tuple[int, int]
     ) -> List[Tuple[int, int]]:
-        print("Pathfinding from", start, "to", end)
+        # print("Pathfinding from", start, "to", end)
         seen = {start: (0, None)}
         queue = [start]
         while queue:
@@ -67,7 +67,7 @@ class HexGrid:
                 step = seen[step][1]
             path.reverse()
 
-            print("Found length", len(path), "board path")
+            # print("Found length", len(path), "board path")
 
             return path
 
@@ -77,7 +77,7 @@ class HexGrid:
     def pathfind_board_of_length(
         self, start: Tuple[int, int], end: Tuple[int, int], n: int
     ) -> List[List[Tuple[int, int]]]:
-        print("Pathfinding from", start, "to", end, "with length", n)
+        # print("Pathfinding from", start, "to", end, "with length", n)
         all_paths = []
 
         def dfs(current: Tuple[int, int], path: List[Tuple[int, int]]):
@@ -99,7 +99,7 @@ class HexGrid:
 
         dfs(start, [start])
 
-        print("Found", len(all_paths), "paths of length", n)
+        # print("Found", len(all_paths), "paths of length", n)
         return all_paths
 
     def pathfind_both(
@@ -109,7 +109,7 @@ class HexGrid:
         # it returns a list of element paths
         # if required_length is None:
 
-        print("Pathfind both from", start, "to", end)
+        # print("Pathfind both from", start, "to", end)
 
         shortest_board_path = self.pathfind_board_shortest(start, end)
         board_paths = self.pathfind_board_of_length(

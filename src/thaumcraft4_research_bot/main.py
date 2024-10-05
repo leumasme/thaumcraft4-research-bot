@@ -19,23 +19,26 @@ from thaumcraft4_research_bot.utils.renderer import *
 
 aspect_manager = AspectManager()
 
+# Disable 0.1 seconds delay between each pyautogui call
+gui.PAUSE = 0
 
-def setup_image(test_mode=True):
+def setup_image(test_mode=True, skip_focus=False):
     if test_mode:
         image = PIL.Image.open("debug_input.png")
         window_base_coords = (0, 0)
     else:
         window = find_game()
 
-        if not window.isActive:
-            window.activate()
-            sleep(0.5)
+        if not skip_focus:
+            if not window.isActive:
+                window.activate()
+                sleep(0.5)
 
-        if not window.isMaximized:
-            window.moveTo(10, 10)
-            sleep(0.5)
-            window.maximize()
-            sleep(0.5)
+            if not window.isMaximized:
+                window.moveTo(10, 10)
+                sleep(0.5)
+                window.maximize()
+                sleep(0.5)
 
         image, window_base_coords = screenshot_window(window)
         image.save("debug_input.png")
@@ -43,7 +46,7 @@ def setup_image(test_mode=True):
     return image, window_base_coords
 
 
-def analyze_image(image: PIL.Image.Image):
+def analyze_image(image: PIL.Image.Image, skip_inventory=False):
     pixels = image.load()
 
     frame_aspects_left = find_frame(image, pixels, (100, 123, 123))
@@ -58,6 +61,9 @@ def analyze_image(image: PIL.Image.Image):
     empty_hexagons = find_squares_in_frame(board, pixels, (195, 195, 195))
     print(empty_hexagons)
 
+    if skip_inventory:
+        return board_aspects, empty_hexagons, []
+    
     print("Aspects in inventory:")
     start_time = time.time()
     inventory_aspects = find_aspects_in_frame(
@@ -157,43 +163,52 @@ def build_grid(columns, valid_y_coords, grid: HexGrid, smallest_y_diff):
 
 
 def main():
-    image, window_base_coords = setup_image(False)
-    draw = ImageDraw.Draw(image)
+    inventory_aspects: list[Tuple[Tuple[int, int, int, int], str]] = None
+    test_mode = True
+    while True:
+        image, window_base_coords = setup_image(test_mode, inventory_aspects is not None)
+        draw = ImageDraw.Draw(image)
 
-    board_aspects, empty_hexagons, inventory_aspects = analyze_image(image)
-    columns, valid_y_coords, smallest_y_diff = group_hexagons(
-        empty_hexagons, board_aspects, image.height
-    )
+        board_aspects, empty_hexagons, new_inventory_aspects = analyze_image(image, inventory_aspects is not None)
+        if inventory_aspects is None:
+            inventory_aspects = new_inventory_aspects
 
-    grid = HexGrid()
-    build_grid(columns, valid_y_coords, grid, smallest_y_diff)
-    print("Grid:", grid.grid)
+        columns, valid_y_coords, smallest_y_diff = group_hexagons(
+            empty_hexagons, board_aspects, image.height
+        )
 
-    start_aspects: list[Tuple[int, int]] = []
-    for (grid_x, grid_y), (name, _) in grid.grid.items():
-        if name != "Free" and name != "Missing":
-            start_aspects.append((grid_x, grid_y))
+        grid = HexGrid()
+        build_grid(columns, valid_y_coords, grid, smallest_y_diff)
+        print("Grid:", grid.grid)
 
-    solved: SolvingHexGrid
-    print("Starting solve computation")
-    start_time = time.time()
-    solved = ringsolver_solve(grid, start_aspects)
-    end_time = time.time()
+        start_aspects: list[Tuple[int, int]] = []
+        for (grid_x, grid_y), (name, _) in grid.grid.items():
+            if name != "Free" and name != "Missing":
+                start_aspects.append((grid_x, grid_y))
 
-    print(f"Time taken to compute solution: {end_time - start_time} seconds")
+        solved: SolvingHexGrid
+        print("Starting solve computation")
+        start_time = time.time()
+        solved = ringsolver_solve(grid, start_aspects)
+        end_time = time.time()
 
-    for path in solved.applied_paths:
-        for aspect, coord in path[1:-1]:
-            place_aspect_at(window_base_coords, inventory_aspects, grid, aspect, coord)
+        print(f"Time taken to compute solution: {end_time - start_time} seconds")
+        print("Total solution cost:", solved.calculate_cost())
 
-    draw_board_coords(solved, draw)
+        for path in solved.applied_paths:
+            for aspect, coord in path[1:-1]:
+                place_aspect_at(window_base_coords, inventory_aspects, grid, aspect, coord)
 
-    print("Applied paths is", solved.applied_paths)
+        draw_board_coords(solved, draw)
 
-    for path in solved.applied_paths:
-        draw_board_path(image, solved, path)
-    image.save("debug_render.png")
+        print("Applied paths is", solved.applied_paths)
 
+        for path in solved.applied_paths:
+            draw_board_path(image, solved, path)
+        image.save("debug_render.png")
+
+        if test_mode: break
+        input("-- Press enter to process next board --")
 
 if __name__ == "__main__":
     main()
@@ -220,6 +235,10 @@ def place_aspect_at(
     boardX, boardY = add_offset(window_base_coords, (boardImgX, boardImgY))
 
     gui.moveTo(invX, invY)
-    sleep(0.1)
-    gui.dragTo(boardX, boardY)
-    sleep(0.1)
+    sleep(0.03)
+    gui.mouseDown()
+    sleep(0.03)
+    gui.moveTo(boardX, boardY)
+    sleep(0.03)
+    gui.mouseUp()
+    sleep(0.03)
