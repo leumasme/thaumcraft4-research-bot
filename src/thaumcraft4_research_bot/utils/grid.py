@@ -131,14 +131,14 @@ class HexGrid:
             start, end, len(shortest_board_path)
         )
         if len(board_paths) == 0:
-            raise Exception(
-                "pathfind_both found no board paths",
-                start,
-                end,
-                "of length",
-                len(shortest_board_path),
-            )
-            # return [], []
+            # raise Exception(
+            #     "pathfind_both found no board paths",
+            #     start,
+            #     end,
+            #     "of length",
+            #     len(shortest_board_path),
+            # )
+            return [], []
 
         start_value = self.get_value(start)
         end_value = self.get_value(end)
@@ -148,17 +148,23 @@ class HexGrid:
             start_value, end_value, required_length
         )
 
+        # If we fail to find an extended path twice in a row, just give up and let the caller backtrack
+        failed_extend = False
+
         while not element_paths:
             required_length += 1
 
             board_paths = self.pathfind_board_of_length(start, end, required_length)
             if len(board_paths) == 0:
-                print("!!! When trying to extend path length, found no board paths")
-                # TODO: this is really broken, testcase "Redlon" or "Runic Altar" research
-                if required_length > len(self.grid):
-                    raise Exception("Failed to find a path in extending phase")
-                    # return [], []
+                print("! When trying to extend path length, found no board paths")
+
+                if failed_extend or required_length > len(self.grid):
+                    print("Failed to find a path in extending phase twice, giving up")
+                    # raise Exception("Failed to find a path in extending phase")
+                    return [], []
+                failed_extend = True
                 continue
+            failed_extend = False
             element_paths = find_all_element_paths_of_length_n(
                 start_value, end_value, required_length
             )

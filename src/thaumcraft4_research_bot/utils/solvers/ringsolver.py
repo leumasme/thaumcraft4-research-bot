@@ -69,57 +69,30 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
     while index < len(nodes_to_connect):
         start, end = nodes_to_connect[index]
 
-        try:
-            # todo: maybe sort board paths to push into the center?
-            print("Ringsolver stage 2 is Pathfinding from", start, "to", end)
+        # todo: maybe sort board paths to push into the center?
+        print("Ringsolver stage 2 is Pathfinding from", start, "to", end)
 
-            board_paths: List[List[Tuple[int, int]]]
-            element_paths: List[List[str]]
-            try:
-                board_paths, element_paths = solving.pathfind_both(start, end)
-            except:
-                board_paths = []
-                element_paths = []
+        board_paths: List[List[Tuple[int, int]]]
+        element_paths: List[List[str]]
+        # fixed
+        board_paths, element_paths = solving.pathfind_both(start, end)
 
-            path_indices.append(0)
+        path_indices.append(0)
 
-            new_paths = [(element_paths[0], board_path) for board_path in board_paths]
+        new_paths = [(element_paths[0], board_path) for board_path in board_paths]
 
-            for applied_path in solving.applied_paths:
-                for _, coords in applied_path[1:-1]:
-                    try:
-                        # maybe could be made cheaper? maybe use bfs here? TODO: do multiple paths at once!
-                        board_paths, element_paths = solving.pathfind_both(
-                            coords, end
-                        )  # order matters!
-                        new_paths += [
-                            (element_paths[0], board_path) for board_path in board_paths
-                        ]
+        for applied_path in solving.applied_paths:
+            for _, coords in applied_path[1:-1]:
+                # maybe could be made cheaper? maybe use bfs here? TODO: do multiple paths at once!
+                board_paths, element_paths = solving.pathfind_both(
+                    coords, end
+                )  # order matters!
+                new_paths += [
+                    (element_paths[0], board_path) for board_path in board_paths
+                ]
 
-                    except:
-                        continue
 
-            # TODO: this is really stupid, refactor away from exceptions
-            if len(new_paths) == 0:
-                raise Exception("This is stupid")
-
-            new_paths.sort(
-                key=lambda x: calculate_cost_of_aspect_path(x[0])
-            )  # todo: second grade sort by something else?
-
-            all_paths.append(new_paths)
-
-            initial_elem_path, initial_board_path = new_paths[0]
-
-            solving.apply_path(initial_board_path, initial_elem_path)
-            print(
-                f"Ringsolver applied path from {initial_board_path[0]} to {initial_board_path[-1]} : {initial_elem_path} {initial_board_path}",
-            )
-            index += 1
-
-            # TODO: do we still want to backtrack already if no direct connection is found?
-            # alternate connections may be shorter anyway. probably doesn't matter
-        except:
+        if len(new_paths) == 0:
             print("Pathfinding failed, alternating previous path")
             # if index < 2: # TODO: Why 2? 1 couldn't work, but that doesn't make sense
             #     raise Exception("No more paths to try in backtracking")
@@ -129,16 +102,34 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
                 print("Pathfinding failed and no previous path alternatives left, backtracking")
                 # No more paths to try for this one, backtrack
                 index -= 1
-
+    
                 path_indices.pop()
                 solving.applied_paths.pop()
             path_indices[index - 1] += 1
-
+    
             current_elem_path, current_board_path = all_paths[index - 1][
                 path_indices[index - 1]
             ]
             solving.applied_paths[index - 1] = list(
                 zip(current_elem_path, current_board_path)
             )
+            continue
+
+        new_paths.sort(
+            key=lambda x: calculate_cost_of_aspect_path(x[0])
+        )  # todo: second grade sort by something else?
+
+        all_paths.append(new_paths)
+
+        initial_elem_path, initial_board_path = new_paths[0]
+
+        solving.apply_path(initial_board_path, initial_elem_path)
+        print(
+            f"Ringsolver applied path from {initial_board_path[0]} to {initial_board_path[-1]} : {initial_elem_path} {initial_board_path}",
+        )
+        index += 1
+
+        # TODO: do we still want to backtrack already if no direct connection is found?
+        # alternate connections may be shorter anyway. probably doesn't matter
 
     return solving
