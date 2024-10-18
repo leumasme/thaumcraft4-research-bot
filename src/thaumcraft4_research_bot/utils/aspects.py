@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 aspect_parents = {
     "aer": (None, None),
@@ -122,37 +122,28 @@ def find_all_element_paths_of_length_n(start: str, end: str, n: int):
     """
     Find all paths of length n between start and end in the graph.
     """
-    paths = []
+    paths: List[List[str]] = []
 
-    def dfs(current_node, current_path, visited):
+    def dfs(current_node: str, current_path: List[str]):
         if len(current_path) == n:
             if current_node == end:
                 paths.append(list(current_path))
             return
 
         for neighbor in graph[current_node]:
-            if neighbor not in visited:
-                visited.add(neighbor)
-                current_path.append(neighbor)
-                dfs(neighbor, current_path, visited)
-                current_path.pop()
-                visited.remove(neighbor)
-            else:
-                # Allow revisiting the end node if it's the target and path length hasn't reached n yet
-                if neighbor == end and neighbor != current_node:
-                    current_path.append(neighbor)
-                    dfs(neighbor, current_path, visited)
-                    current_path.pop()
+            current_path.append(neighbor)
+            dfs(neighbor, current_path)
+            current_path.pop()
 
-    visited = set([start])
-    dfs(start, [start], visited)
-
-    paths = [path for path in paths if path[-1] == end]
+    dfs(start, [start])
 
     if len(paths) == 0:
         print("No aspect path found from", start, "to", end, "of length", n)
         return []
 
+    paths.sort(key=lambda p: calculate_cost_of_aspect_path(p))
+
+    return paths
     # Compute the total cost of each path using the precomputed aspect_costs
     path_costs = []
     for path in paths:
