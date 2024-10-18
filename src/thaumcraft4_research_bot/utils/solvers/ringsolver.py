@@ -9,24 +9,18 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
     # create paths_to_connect by finding the 2 closest neighbors of each aspect via pathfinding.
     closest_neighbors: Dict[Tuple[int, int], List[Tuple[Tuple[int, int], int]]] = {}
     for start_aspect in start_aspects:
+        if len(start_aspects) == 2:
+            # If there's only one pair of aspects, we don't need to do this
+            break
+
         neigh_paths = []  # How far is it to each of the other aspects?
-        for other in start_aspects:
-            if other == start_aspect:
-                continue
-            # try:
-            print("Ringsolver is Pathfinding from", start_aspect, "to", other)
-            neigh_paths.append(
-                (other, len(solving.pathfind_board_shortest(start_aspect, other)))
-            )
-            # except:
-            #     print("Pathfind from", start_aspect, "to", other, "failed")
-            #     continue
+
+        neigh_paths_dict = solving.pathfind_to_many(start_aspect, start_aspects)
+        neigh_paths = [ (other, len(path)) for other, path in neigh_paths_dict.items() ]
+
         # Take closest 2 other aspects and store
         neigh_paths.sort(key=lambda x: x[1])
         if len(neigh_paths) < 2:
-            if len(start_aspects) == 2:
-                # If there's only one pair of aspects, we don't need to do this
-                break
             raise Exception(
                 "Could not find 2 neighbors for", start_aspect, solving.grid
             )
@@ -53,7 +47,8 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
             else:
                 break
 
-    # TODO: refactor so this fallback isn't needed
+    # TODO: refactor so this fallback isn't needed.
+    # Otherwise currently, it would be possible to build a graph that doesn't actually connect all starts
     if len(nodes_to_connect) != len(start_aspects) - 1:
         for aspect_loc in start_aspects:
             if not any(aspect_loc in conn for conn in nodes_to_connect):

@@ -122,6 +122,48 @@ class HexGrid:
         # print("Found", len(all_paths), "paths of length", n)
         return all_paths
 
+    def pathfind_to_many(
+        self, start: Tuple[int, int], ends_arg: List[Tuple[int, int]]
+    ):
+        seen = {start: (0, None)}
+        queue = [start]
+        ends = set(ends_arg)
+
+        found_paths: Dict[Tuple[int, int], List[Tuple[int, int]]] = {}
+
+        def resolve_path(end):
+            path = []
+            step = end
+            while step is not None:
+                path.append(step)
+                step = seen[step][1]
+            path.reverse()
+            found_paths[end] = path
+            ends.remove(end)
+
+        while queue:
+            current = queue.pop(0)
+
+            current_distance, _ = seen[current]
+            for neighbor in self.get_neighbors(current):
+                if neighbor not in seen:
+                    seen[neighbor] = (current_distance + 1, current)
+
+                    # End early if we find the end node 
+                    if neighbor in ends:
+                        resolve_path(neighbor)
+                        if len(ends) == 0:
+                            return found_paths
+                        continue
+
+                    # Don't cross over non-free board spaces.
+                    if self.get_value(neighbor) == "Free":
+                        queue.append(neighbor)
+
+        # Didn't find all ends
+        return found_paths
+
+    
     def pathfind_both(
         self, start: Tuple[int, int], end: Tuple[int, int]
     ) -> Tuple[List[List[Tuple[int, int]]], List[List[str]]]:
