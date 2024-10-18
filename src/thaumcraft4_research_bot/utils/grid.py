@@ -60,34 +60,39 @@ class HexGrid:
     def pathfind_board_shortest(
         self, start: Tuple[int, int], end: Tuple[int, int]
     ) -> List[Tuple[int, int]]:
-        # print("Pathfinding from", start, "to", end)
         seen = {start: (0, None)}
         queue = [start]
         while queue:
             current = queue.pop(0)
-            if current == end:
-                break
 
             current_distance, _ = seen[current]
             for neighbor in self.get_neighbors(current):
                 if neighbor not in seen:
                     seen[neighbor] = (current_distance + 1, current)
-                    queue.append(neighbor)
+
+                    # End early if we find the end node 
+                    if neighbor == end:
+                        queue = []
+                        break
+
+                    # Don't cross over non-free board spaces. End is already checked above.
+                    if self.get_value(neighbor) == "Free":
+                        queue.append(neighbor)
+
+        if not end in seen:
+            print("!!! Found no board paths")
+            return None
 
         path = []
-        if end in seen:
-            step = end
-            while step is not None:
-                path.append(step)
-                step = seen[step][1]
-            path.reverse()
+        step = end
+        while step is not None:
+            path.append(step)
+            step = seen[step][1]
+        path.reverse()
 
-            # print("Found length", len(path), "board path")
+        # print("Found length", len(path), "board path")
+        return path
 
-            return path
-
-        print("!!! Found no board paths", path)
-        return None
 
     def pathfind_board_of_length(
         self, start: Tuple[int, int], end: Tuple[int, int], n: int
