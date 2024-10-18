@@ -169,7 +169,7 @@ def build_grid(columns, valid_y_coords, grid: HexGrid, smallest_y_diff):
 
 def main():
     inventory_aspects: list[Tuple[Tuple[int, int, int, int], str]] = None
-    test_mode = True
+    test_mode = False
     while True:
         image, window_base_coords = setup_image(
             test_mode, inventory_aspects is not None
@@ -214,18 +214,18 @@ def main():
         print("Total solution cost:", solved.calculate_cost())
 
         for path in solved.applied_paths:
-            for aspect, coord in path[1:-1]:
-                place_aspect_at(window_base_coords, inventory_aspects, grid, aspect, coord)
+            draw_board_path(image, solved, path)
+        image.save("debug_render.png")
 
         draw_board_coords(solved, draw)
 
         print("Applied paths is", solved.applied_paths)
 
-        for path in solved.applied_paths:
-            draw_board_path(image, solved, path)
-        image.save("debug_render.png")
-
         if test_mode: break
+        for path in solved.applied_paths:
+            for aspect, coord in path[1:-1]:
+                place_aspect_at(window_base_coords, inventory_aspects, grid, aspect, coord)
+
         input("-- Press enter to process next board --")
 
 if __name__ == "__main__":
