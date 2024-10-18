@@ -69,15 +69,12 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
     while index < len(nodes_to_connect):
         start, end = nodes_to_connect[index]
 
-        # todo: maybe sort board paths to push into the center?
         print("Ringsolver stage 2 is Pathfinding from", start, "to", end)
 
         board_paths: List[List[Tuple[int, int]]]
         element_paths: List[List[str]]
-        # fixed
-        board_paths, element_paths = solving.pathfind_both(start, end)
 
-        path_indices.append(0)
+        board_paths, element_paths = solving.pathfind_both(start, end)
 
         new_paths = [(element_paths[0], board_path) for board_path in board_paths]
 
@@ -94,15 +91,18 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
 
         if len(new_paths) == 0:
             print("Pathfinding failed, alternating previous path")
-            # if index < 2: # TODO: Why 2? 1 couldn't work, but that doesn't make sense
-            #     raise Exception("No more paths to try in backtracking")
-            #     print("No more paths to try in backtracking")
-            #     return solving
+
+            if index == 0:
+                raise Exception("Ringsolver failed: Pathfinding failed on very first path")
+
             if path_indices[index - 1] == len(all_paths[index - 1]) - 1:
                 print("Pathfinding failed and no previous path alternatives left, backtracking")
                 # No more paths to try for this one, backtrack
                 index -= 1
-    
+
+                if index == 0:
+                    raise Exception("Ringsolver failed: Backtracked all the way to the start")
+
                 path_indices.pop()
                 solving.applied_paths.pop()
             path_indices[index - 1] += 1
@@ -124,10 +124,12 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
         initial_elem_path, initial_board_path = new_paths[0]
 
         solving.apply_path(initial_board_path, initial_elem_path)
+        path_indices.append(0)
+        index += 1
+
         print(
             f"Ringsolver applied path from {initial_board_path[0]} to {initial_board_path[-1]} : {initial_elem_path} {initial_board_path}",
         )
-        index += 1
 
         # TODO: do we still want to backtrack already if no direct connection is found?
         # alternate connections may be shorter anyway. probably doesn't matter
