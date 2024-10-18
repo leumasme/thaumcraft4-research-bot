@@ -125,24 +125,16 @@ class HexGrid:
     def pathfind_both(
         self, start: Tuple[int, int], end: Tuple[int, int]
     ) -> Tuple[List[List[Tuple[int, int]]], List[List[str]]]:
-        # use the imported find_all_element_paths_of_length_n(start_value, end_value, desired_length) -> list[list[str]]
-        # it returns a list of element paths
-        # if required_length is None:
-
         # print("Pathfind both from", start, "to", end)
 
         shortest_board_path = self.pathfind_board_shortest(start, end)
+        if shortest_board_path is None:
+            return [], []
+        
         board_paths = self.pathfind_board_of_length(
             start, end, len(shortest_board_path)
         )
         if len(board_paths) == 0:
-            # raise Exception(
-            #     "pathfind_both found no board paths",
-            #     start,
-            #     end,
-            #     "of length",
-            #     len(shortest_board_path),
-            # )
             return [], []
 
         start_value = self.get_value(start)
