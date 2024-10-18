@@ -72,7 +72,14 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
         try:
             # todo: maybe sort board paths to push into the center?
             print("Ringsolver stage 2 is Pathfinding from", start, "to", end)
-            board_paths, element_paths = solving.pathfind_both(start, end)
+
+            board_paths: List[List[Tuple[int, int]]]
+            element_paths: List[List[str]]
+            try:
+                board_paths, element_paths = solving.pathfind_both(start, end)
+            except:
+                board_paths = []
+                element_paths = []
 
             path_indices.append(0)
 
@@ -92,6 +99,10 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
                     except:
                         continue
 
+            # TODO: this is really stupid, refactor away from exceptions
+            if len(new_paths) == 0:
+                raise Exception("This is stupid")
+
             new_paths.sort(
                 key=lambda x: calculate_cost_of_aspect_path(x[0])
             )  # todo: second grade sort by something else?
@@ -109,12 +120,13 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
             # TODO: do we still want to backtrack already if no direct connection is found?
             # alternate connections may be shorter anyway. probably doesn't matter
         except:
-            print("Pathfinding failed, backtracking")
+            print("Pathfinding failed, alternating previous path")
             # if index < 2: # TODO: Why 2? 1 couldn't work, but that doesn't make sense
             #     raise Exception("No more paths to try in backtracking")
             #     print("No more paths to try in backtracking")
             #     return solving
             if path_indices[index - 1] == len(all_paths[index - 1]) - 1:
+                print("Pathfinding failed and no previous path alternatives left, backtracking")
                 # No more paths to try for this one, backtrack
                 index -= 1
 

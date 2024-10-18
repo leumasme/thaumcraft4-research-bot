@@ -154,6 +154,7 @@ class HexGrid:
             board_paths = self.pathfind_board_of_length(start, end, required_length)
             if len(board_paths) == 0:
                 print("!!! When trying to extend path length, found no board paths")
+                # TODO: this is really broken, testcase "Redlon" or "Runic Altar" research
                 if required_length > len(self.grid):
                     raise Exception("Failed to find a path in extending phase")
                     # return [], []
