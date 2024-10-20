@@ -1,3 +1,4 @@
+import time
 from typing import Dict, Tuple, Optional, List
 from copy import deepcopy
 from thaumcraft4_research_bot.utils.aspects import aspect_costs, find_all_element_paths_many
@@ -129,16 +130,18 @@ class HexGrid:
         queue = [start]
         ends = set(ends_arg)
 
-        found_paths: Dict[Tuple[int, int], List[Tuple[int, int]]] = {}
+        found_paths: List[List[Tuple[int, int]]] = [None for _ in ends_arg]
+        # no dict for deterministic order!
+        # found_paths: Dict[Tuple[int, int], List[Tuple[int, int]]] = {}
 
-        def resolve_path(end):
+        def resolve_path(end: Tuple[int, int]):
             path = []
             step = end
             while step is not None:
                 path.append(step)
                 step = seen[step][1]
             path.reverse()
-            found_paths[end] = path
+            found_paths[ends_arg.index(end)] = path
             ends.remove(end)
 
         while queue:
@@ -191,14 +194,12 @@ class HexGrid:
 
         dfs(start, [start])
 
-        for paths in paths_many:
-            paths.sort(key=lambda p: calculate_cost_of_aspect_path(p))
-
         return paths_many
     
     def pathfind_both(
         self, start: Tuple[int, int], end: Tuple[int, int]
     ) -> Tuple[List[List[Tuple[int, int]]], List[List[str]]]:
+        raise Exception("Deprecated")
         # print("Pathfind both from", start, "to", end)
 
         shortest_board_path = self.pathfind_board_shortest(start, end)
@@ -247,21 +248,50 @@ class HexGrid:
         return board_paths, element_paths
 
     def pathfind_both_many(self, start: Tuple[int, int], ends: List[Tuple[int, int]]):
-        shortest_path_dict = self.pathfind_shortest_to_many(start, ends)
+        shortest_path_list = self.pathfind_shortest_to_many(start, ends)
 
         # would this be correctly aligned with each other?
         # end_aspects = [self.get_value(end) for end in shortest_path_dict.keys()]
         # lengths = [len(path) for path in shortest_path_dict.values()]
 
-        end_aspects: List[str]
-        lengths: List[int]
-        end_aspects, lengths = zip(*[(self.get_value(node), len(path)) for node, path in shortest_path_dict.items()])
+        shortest_paths_clean: List[List[Tuple[int, int]]] = []
+        end_aspects: List[str] = []
+        lengths: List[int] = []
+        for i in range(len(ends)):
+            if shortest_path_list[i] is None:
+                # No path found
+                continue
+            shortest_paths_clean.append(shortest_path_list[i])
+            end_aspects.append(self.get_value(ends[i]))
+            lengths.append(len(shortest_path_list[i]))
 
+        print("Searching element paths for", self.get_value(start), "to", end_aspects, "in steps", lengths)
+
+        start_time = time.time()
         element_paths = find_all_element_paths_many(self.get_value(start), end_aspects, lengths)
+        end_time = time.time()
+        print(f"Time taken for aspect DFS: {end_time - start_time} seconds")
+        print(f"From {start} to {[path[-1] for path in shortest_paths_clean]}")
+
+
+        # We need a list[tuple[List[str], List[Tuple[int, int]]]]
+
+        all_paths: list[tuple[List[str], List[Tuple[int, int]]]] = []
+        for i in range(len(end_aspects)):
+            # Consider only the cheapest element path
+
+            if len(element_paths[i]) == 0:
+                # No element path found
+                continue                
+
+            element_path = element_paths[i][0]
+
+            all_paths.append((element_path, shortest_paths_clean[i]))
 
         # TODO: unfinished
 
         # todo: extend, not just for not working but also for cost?
+        return all_paths
 
             
 

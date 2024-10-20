@@ -1,5 +1,8 @@
 from thaumcraft4_research_bot.utils.grid import HexGrid, SolvingHexGrid
-from thaumcraft4_research_bot.utils.aspects import calculate_cost_of_aspect_path
+from thaumcraft4_research_bot.utils.aspects import (
+    calculate_cost_of_aspect_path,
+    find_all_element_paths_many,
+)
 from typing import Tuple, List, Dict
 
 
@@ -15,8 +18,10 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
 
         neigh_paths = []  # How far is it to each of the other aspects?
 
-        neigh_paths_dict = solving.pathfind_shortest_to_many(start_aspect, start_aspects)
-        neigh_paths = [ (other, len(path)) for other, path in neigh_paths_dict.items() ]
+        neigh_paths_list = solving.pathfind_shortest_to_many(
+            start_aspect, start_aspects
+        )
+        neigh_paths = [(path[-1], len(path)) for path in neigh_paths_list if path]
 
         # Take closest 2 other aspects and store
         neigh_paths.sort(key=lambda x: x[1])
@@ -66,42 +71,57 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
 
         print("Ringsolver stage 2 is Pathfinding from", start, "to", end)
 
-        board_paths: List[List[Tuple[int, int]]]
-        element_paths: List[List[str]]
+        # board_paths: List[List[Tuple[int, int]]]
+        # element_paths: List[List[str]]
 
-        board_paths, element_paths = solving.pathfind_both(start, end)
+        # board_paths, element_paths = solving.pathfind_both(start, end)
 
-        new_paths = [(element_paths[0], board_path) for board_path in board_paths]
+        # new_paths = [(element_paths[0], board_path) for board_path in board_paths]
 
-        for applied_path in solving.applied_paths:
-            for _, coords in applied_path[1:-1]:
-                # maybe could be made cheaper? maybe use bfs here? TODO: do multiple paths at once!
-                board_paths, element_paths = solving.pathfind_both(
-                    coords, end
-                )  # order matters!
-                new_paths += [
-                    (element_paths[0], board_path) for board_path in board_paths
-                ]
+        all_placed_aspects = [
+            coords
+            for applied_path in solving.applied_paths
+            for (_, coords) in applied_path
+        ]
 
+        print("All placed aspects:", all_placed_aspects)
+
+        new_paths = solving.pathfind_both_many(end, all_placed_aspects + [start])
+
+        # for applied_path in solving.applied_paths:
+        #     for _, coords in applied_path[1:-1]:
+        #         # maybe could be made cheaper? maybe use bfs here? TODO: do multiple paths at once!
+        #         board_paths, element_paths = solving.pathfind_both(
+        #             coords, end
+        #         )  # order matters!
+        #         new_paths += [
+        #             (element_paths[0], board_path) for board_path in board_paths
+        #         ]
 
         if len(new_paths) == 0:
             print("Pathfinding failed, alternating previous path")
 
             if index == 0:
-                raise Exception("Ringsolver failed: Pathfinding failed on very first path")
+                raise Exception(
+                    "Ringsolver failed: Pathfinding failed on very first path"
+                )
 
             if path_indices[index - 1] == len(all_paths[index - 1]) - 1:
-                print("Pathfinding failed and no previous path alternatives left, backtracking")
+                print(
+                    "Pathfinding failed and no previous path alternatives left, backtracking"
+                )
                 # No more paths to try for this one, backtrack
                 index -= 1
 
                 if index == 0:
-                    raise Exception("Ringsolver failed: Backtracked all the way to the start")
+                    raise Exception(
+                        "Ringsolver failed: Backtracked all the way to the start"
+                    )
 
                 path_indices.pop()
                 solving.applied_paths.pop()
             path_indices[index - 1] += 1
-    
+
             current_elem_path, current_board_path = all_paths[index - 1][
                 path_indices[index - 1]
             ]

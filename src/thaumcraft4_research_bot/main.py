@@ -215,9 +215,10 @@ def main():
 
         for path in solved.applied_paths:
             draw_board_path(image, solved, path)
-        image.save("debug_render.png")
 
         draw_board_coords(solved, draw)
+        
+        image.save("debug_render.png")
 
         print("Applied paths is", solved.applied_paths)
 

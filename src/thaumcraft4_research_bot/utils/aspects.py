@@ -74,7 +74,6 @@ aspect_parents = {
 
 # Build the graph as an adjacency list
 from collections import defaultdict
-from itertools import product
 
 graph = defaultdict(list)
 
@@ -121,6 +120,7 @@ while remaining_aspects:
 
 
 def find_all_element_paths_of_length_n(start: str, end: str, n: int):
+    raise Exception("Deprecated")
     """
     Find all paths of length n between start and end in the graph.
     """
@@ -147,17 +147,17 @@ def find_all_element_paths_of_length_n(start: str, end: str, n: int):
 
     return paths
 
-def find_all_element_paths_many(start: str, ends_arg: List[str], n_list: List[int]):
-    ends = set(ends_arg)
-
+def find_all_element_paths_many(start: str, ends_list: List[str], n_list: List[int]):
     max_n = max(n_list)
 
+    # paths_many: dict[str, List[List[str]]] = defaultdict(list)
     # Depth 3 for: Different ends, Alternative Paths, Nodes in Path
-    paths_many: List[List[List[str]]] = [[] for _ in ends]
+    paths_many: List[List[List[str]]] = [[] for _ in ends_list]
 
     def dfs(current_node: str, current_path: List[str]):
-        for i, (curr_end, curr_n) in enumerate(zip(ends, n_list)):
+        for i, (curr_end, curr_n) in enumerate(zip(ends_list, n_list)):
             if current_node == curr_end and len(current_path) == curr_n:
+                # paths_many[i].append(list(current_path))
                 paths_many[i].append(list(current_path))
 
         if len(current_path) == max_n:
@@ -171,7 +171,9 @@ def find_all_element_paths_many(start: str, ends_arg: List[str], n_list: List[in
     dfs(start, [start])
 
     for paths in paths_many:
-        paths.sort(key=lambda p: calculate_cost_of_aspect_path(p))
+        paths.sort(key=calculate_cost_of_aspect_path)
+
+    # print("Element paths many:", paths_many)
 
     return paths_many
 
