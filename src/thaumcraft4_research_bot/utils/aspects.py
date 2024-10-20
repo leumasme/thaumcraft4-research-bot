@@ -144,20 +144,34 @@ def find_all_element_paths_of_length_n(start: str, end: str, n: int):
     paths.sort(key=lambda p: calculate_cost_of_aspect_path(p))
 
     return paths
-    # Compute the total cost of each path using the precomputed aspect_costs
-    path_costs = []
-    for path in paths:
-        path_costs.append((calculate_cost_of_aspect_path(path), path))
 
-    path_and_costs = list(zip(paths, path_costs))
-    # Sort the paths by total cost
-    path_and_costs.sort(key=lambda x: x[1])
+def find_all_element_paths_many(start: str, ends_arg: List[str], n_list: List[int]):
+    ends = set(ends_arg)
 
-    # Path-Cost pairs are sorted by cost, now take the paths out again
-    paths, _ = list(zip(*path_and_costs))
+    max_n = max(n_list)
 
-    return paths
+    # Depth 3 for: Different ends, Alternative Paths, Nodes in Path
+    paths_many: List[List[List[str]]] = [[] for _ in ends]
 
+    def dfs(current_node: str, current_path: List[str]):
+        for i, (curr_end, curr_n) in enumerate(zip(ends, n_list)):
+            if current_node == curr_end and len(current_path) == curr_n:
+                paths_many[i].append(list(current_path))
+
+        if len(current_path) == max_n:
+            return
+
+        for neighbor in graph[current_node]:
+            current_path.append(neighbor)
+            dfs(neighbor, current_path)
+            current_path.pop()
+
+    dfs(start, [start])
+
+    for paths in paths_many:
+        paths.sort(key=lambda p: calculate_cost_of_aspect_path(p))
+
+    return paths_many
 
 def calculate_cost_of_aspect_path(path: List[str]) -> int:
     return sum(aspect_costs[aspect] for aspect in path)

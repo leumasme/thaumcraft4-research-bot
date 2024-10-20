@@ -1,6 +1,6 @@
 from typing import Dict, Tuple, Optional, List
 from copy import deepcopy
-from thaumcraft4_research_bot.utils.aspects import aspect_costs
+from thaumcraft4_research_bot.utils.aspects import aspect_costs, find_all_element_paths_many
 from thaumcraft4_research_bot.utils.aspects import find_all_element_paths_of_length_n
 
 
@@ -122,7 +122,7 @@ class HexGrid:
         # print("Found", len(all_paths), "paths of length", n)
         return all_paths
 
-    def pathfind_to_many(
+    def pathfind_shortest_to_many(
         self, start: Tuple[int, int], ends_arg: List[Tuple[int, int]]
     ):
         seen = {start: (0, None)}
@@ -163,6 +163,38 @@ class HexGrid:
         # Didn't find all ends
         return found_paths
 
+    def pathfind_board_all_to_many(
+        self, start: Tuple[int, int], ends_arg: List[Tuple[int, int]], n_list: List[int]
+    ):
+        ends = set(ends_arg)
+
+        max_n = max(n_list)
+
+        # Depth 3 for: Different ends, Alternative Paths, Nodes in Path
+        paths_many: List[List[List[str]]] = [[] for _ in ends]
+
+        def dfs(current_node: str, current_path: List[str]):
+            for i, (curr_end, curr_n) in enumerate(zip(ends, n_list)):
+                if current_node == curr_end and len(current_path) == curr_n:
+                    paths_many[i].append(list(current_path))
+
+            if len(current_path) == max_n:
+                return
+
+            for neighbor in self.get_neighbors(current_node):
+                if neighbor in current_path:
+                    continue
+
+                current_path.append(neighbor)
+                dfs(neighbor, current_path)
+                current_path.pop()
+
+        dfs(start, [start])
+
+        for paths in paths_many:
+            paths.sort(key=lambda p: calculate_cost_of_aspect_path(p))
+
+        return paths_many
     
     def pathfind_both(
         self, start: Tuple[int, int], end: Tuple[int, int]
@@ -199,19 +231,39 @@ class HexGrid:
 
                 if failed_extend or required_length > len(self.grid):
                     print("Failed to find a path in extending phase twice, giving up")
-                    # raise Exception("Failed to find a path in extending phase")
                     return [], []
                 failed_extend = True
                 continue
+
             failed_extend = False
             element_paths = find_all_element_paths_of_length_n(
                 start_value, end_value, required_length
             )
 
+        # Prioritize paths that have more nodes closer to the center
+        # This makes it cheaper for future paths to connect to nodes of the current path
         board_paths.sort(key=lambda x: self.score_distance_from_center(x))
 
         return board_paths, element_paths
 
+    def pathfind_both_many(self, start: Tuple[int, int], ends: List[Tuple[int, int]]):
+        shortest_path_dict = self.pathfind_shortest_to_many(start, ends)
+
+        # would this be correctly aligned with each other?
+        # end_aspects = [self.get_value(end) for end in shortest_path_dict.keys()]
+        # lengths = [len(path) for path in shortest_path_dict.values()]
+
+        end_aspects: List[str]
+        lengths: List[int]
+        end_aspects, lengths = zip(*[(self.get_value(node), len(path)) for node, path in shortest_path_dict.items()])
+
+        element_paths = find_all_element_paths_many(self.get_value(start), end_aspects, lengths)
+
+        # TODO: unfinished
+
+        # todo: extend, not just for not working but also for cost?
+
+            
 
 class SolvingHexGrid(HexGrid):
     applied_paths: List[List[Tuple[str, Tuple[int, int]]]]

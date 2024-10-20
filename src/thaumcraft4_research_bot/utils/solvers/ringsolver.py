@@ -15,7 +15,7 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
 
         neigh_paths = []  # How far is it to each of the other aspects?
 
-        neigh_paths_dict = solving.pathfind_to_many(start_aspect, start_aspects)
+        neigh_paths_dict = solving.pathfind_shortest_to_many(start_aspect, start_aspects)
         neigh_paths = [ (other, len(path)) for other, path in neigh_paths_dict.items() ]
 
         # Take closest 2 other aspects and store
