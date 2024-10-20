@@ -75,7 +75,7 @@ aspect_parents = {
 # Build the graph as an adjacency list
 from collections import defaultdict
 
-graph = defaultdict(list)
+graph: defaultdict[str, List[str]] = defaultdict(list)
 
 # Add edges between aspects and their parents
 for aspect, parents in aspect_parents.items():
@@ -118,6 +118,11 @@ while remaining_aspects:
         print(", ".join(remaining_aspects))
         break
 
+# Make sure the cheaper aspects are first in the neighbor list
+# This is very cheap and makes the aspect path dfs heuristic work better
+for aspect in graph.values():
+    aspect.sort(key=lambda a: aspect_costs[a])
+
 
 def find_all_element_paths_of_length_n(start: str, end: str, n: int):
     raise Exception("Deprecated")
@@ -150,30 +155,44 @@ def find_all_element_paths_of_length_n(start: str, end: str, n: int):
 def find_all_element_paths_many(start: str, ends_list: List[str], n_list: List[int]):
     max_n = max(n_list)
 
-    # paths_many: dict[str, List[List[str]]] = defaultdict(list)
+    # Heuristic to speed this up dramatically
+    # With this, the function won't actually return *all* paths, but definitely the cheapest ones
+    # TODO: Use best first search instead?
+    min_costs = [999999999] * len(ends_list) # todo: proper default value
+    max_min_cost_index = 0
+
     # Depth 3 for: Different ends, Alternative Paths, Nodes in Path
     paths_many: List[List[List[str]]] = [[] for _ in ends_list]
 
-    def dfs(current_node: str, current_path: List[str]):
+    def dfs(current_node: str, current_path: List[str], current_cost: int):
+        nonlocal max_min_cost_index
         for i, (curr_end, curr_n) in enumerate(zip(ends_list, n_list)):
             if current_node == curr_end and len(current_path) == curr_n:
-                # paths_many[i].append(list(current_path))
                 paths_many[i].append(list(current_path))
+                
+                min_costs[i] = min(min_costs[i], current_cost)
+                if min_costs[max_min_cost_index] < min_costs[i]:
+                    max_min_cost_index = i
 
         if len(current_path) == max_n:
+            return
+        
+        # If we're going to be worse than the worst best path, we can't find a best path anymore
+        min_extra_cost = n_list[max_min_cost_index] - len(current_path)
+        if min_extra_cost < 0:
+            min_extra_cost = 0
+        if current_cost + min_extra_cost > min_costs[max_min_cost_index]:
             return
 
         for neighbor in graph[current_node]:
             current_path.append(neighbor)
-            dfs(neighbor, current_path)
+            dfs(neighbor, current_path, current_cost + aspect_costs[neighbor])
             current_path.pop()
 
-    dfs(start, [start])
+    dfs(start, [start], 0)
 
     for paths in paths_many:
         paths.sort(key=calculate_cost_of_aspect_path)
-
-    # print("Element paths many:", paths_many)
 
     return paths_many
 
