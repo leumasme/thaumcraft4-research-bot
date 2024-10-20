@@ -76,14 +76,16 @@ aspect_parents = {
 from collections import defaultdict
 from itertools import product
 
-graph = defaultdict(set)
+graph = defaultdict(list)
 
 # Add edges between aspects and their parents
 for aspect, parents in aspect_parents.items():
     for parent in parents:
         if parent is not None:
-            graph[aspect].add(parent)
-            graph[parent].add(aspect)
+            if aspect not in graph[parent]:
+                graph[parent].append(aspect)
+            if parent not in graph[aspect]:
+                graph[aspect].append(parent)
 
 # Compute aspect costs without recursion by caching the results in a dictionary
 aspect_costs = {}
