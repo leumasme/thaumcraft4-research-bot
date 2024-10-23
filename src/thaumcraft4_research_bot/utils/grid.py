@@ -1,3 +1,6 @@
+import base64
+import hashlib
+import json
 import time
 from typing import Dict, Tuple, Optional, List
 from copy import deepcopy
@@ -293,6 +296,18 @@ class HexGrid:
         # todo: extend, not just for not working but also for cost?
         return all_paths
 
+    def hash_board(self) -> str:
+        # Hashes only the "Grid Coordinate -> Aspect" part of the grid, ignoring the screen coordinates
+        # Returns a filesystem-friendly hash string
+
+        # This is stupid
+        elems = [(coord, aspect) for coord, (aspect, _) in self.grid.items()]
+        elems.sort()
+        hash_out = hashlib.md5(json.dumps(elems).encode(), usedforsecurity=False)
+        base64_str = base64.urlsafe_b64encode(hash_out.digest()).decode('ascii')
+        base64_str = base64_str.rstrip("=")
+
+        return base64_str
             
 
 class SolvingHexGrid(HexGrid):

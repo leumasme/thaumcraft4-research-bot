@@ -1,4 +1,5 @@
 from collections import defaultdict
+from pathlib import Path
 import pyautogui as gui
 from time import sleep
 from PIL import ImageDraw
@@ -198,6 +199,13 @@ def main():
         grid = HexGrid()
         build_grid(columns, valid_y_coords, grid, smallest_y_diff)
         print("Grid:", grid.grid)
+
+        board_hash = grid.hash_board()[:6]
+        print("Board hash is", board_hash)
+        img_path = Path("./test_inputs/board_" + board_hash + ".png")
+        if not img_path.exists():
+            img_path.parent.mkdir(exist_ok=True)
+            image.save(str(img_path))
 
         start_aspects: list[Tuple[int, int]] = []
         for (grid_x, grid_y), (name, _) in grid.grid.items():
