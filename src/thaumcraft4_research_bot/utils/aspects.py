@@ -123,41 +123,11 @@ while remaining_aspects:
 for aspect in graph.values():
     aspect.sort(key=lambda a: aspect_costs[a])
 
-
-def find_all_element_paths_of_length_n(start: str, end: str, n: int):
-    raise Exception("Deprecated")
-    """
-    Find all paths of length n between start and end in the graph.
-    """
-    paths: List[List[str]] = []
-
-    def dfs(current_node: str, current_path: List[str]):
-        if len(current_path) == n:
-            if current_node == end:
-                paths.append(list(current_path))
-            return
-
-        for neighbor in graph[current_node]:
-            current_path.append(neighbor)
-            dfs(neighbor, current_path)
-            current_path.pop()
-
-    dfs(start, [start])
-
-    if len(paths) == 0:
-        print("No aspect path found from", start, "to", end, "of length", n)
-        return []
-
-    paths.sort(key=lambda p: calculate_cost_of_aspect_path(p))
-
-    return paths
-
 def find_all_element_paths_many(start: str, ends_list: List[str], n_list: List[int]):
     max_n = max(n_list)
 
     # Heuristic to speed this up dramatically
     # With this, the function won't actually return *all* paths, but definitely the cheapest ones
-    # TODO: Use best first search instead?
     min_costs = [999999999] * len(ends_list) # todo: proper default value
     max_min_cost_index = 0
 

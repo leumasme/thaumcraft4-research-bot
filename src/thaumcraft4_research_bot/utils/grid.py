@@ -4,9 +4,7 @@ import json
 import time
 from typing import Dict, Tuple, Optional, List
 from copy import deepcopy
-from thaumcraft4_research_bot.utils.aspects import aspect_costs, find_all_element_paths_many
-from thaumcraft4_research_bot.utils.aspects import find_all_element_paths_of_length_n
-
+from thaumcraft4_research_bot.utils.aspects import aspect_costs, calculate_cost_of_aspect_path, find_all_element_paths_many
 
 class HexGrid:
     # Grid coordinate -> Aspect, Screen Coordinate
@@ -199,59 +197,8 @@ class HexGrid:
         dfs(start, [start])
 
         return paths_many
-    
-    def pathfind_both(
-        self, start: Tuple[int, int], end: Tuple[int, int]
-    ) -> Tuple[List[List[Tuple[int, int]]], List[List[str]]]:
-        raise Exception("Deprecated")
-        # print("Pathfind both from", start, "to", end)
 
-        shortest_board_path = self.pathfind_board_shortest(start, end)
-        if shortest_board_path is None:
-            return [], []
-        
-        board_paths = self.pathfind_board_of_length(
-            start, end, len(shortest_board_path)
-        )
-        if len(board_paths) == 0:
-            return [], []
-
-        start_value = self.get_value(start)
-        end_value = self.get_value(end)
-        required_length = len(board_paths[0])
-
-        element_paths = find_all_element_paths_of_length_n(
-            start_value, end_value, required_length
-        )
-
-        # If we fail to find an extended path twice in a row, just give up and let the caller backtrack
-        failed_extend = False
-
-        while not element_paths:
-            required_length += 1
-
-            board_paths = self.pathfind_board_of_length(start, end, required_length)
-            if len(board_paths) == 0:
-                print("! When trying to extend path length, found no board paths")
-
-                if failed_extend or required_length > len(self.grid):
-                    print("Failed to find a path in extending phase twice, giving up")
-                    return [], []
-                failed_extend = True
-                continue
-
-            failed_extend = False
-            element_paths = find_all_element_paths_of_length_n(
-                start_value, end_value, required_length
-            )
-
-        # Prioritize paths that have more nodes closer to the center
-        # This makes it cheaper for future paths to connect to nodes of the current path
-        board_paths.sort(key=lambda x: self.score_distance_from_center(x))
-
-        return board_paths, element_paths
-
-    def pathfind_both_many(self, start: Tuple[int, int], ends: List[Tuple[int, int]]):
+    def pathfind_both_many(self, start: Tuple[int, int], ends: List[Tuple[int, int]], aspect_variations = 1):
         shortest_path_list = self.pathfind_shortest_to_many(start, ends)
 
         # would this be correctly aligned with each other?
@@ -269,30 +216,39 @@ class HexGrid:
             end_aspects.append(self.get_value(ends[i]))
             lengths.append(len(shortest_path_list[i]))
 
-        print("Searching element paths for", self.get_value(start), "to", end_aspects, "in steps", lengths)
+        # print("Searching element paths for", self.get_value(start), "to", end_aspects, "in steps", lengths)
 
         start_time = time.time()
         element_paths = find_all_element_paths_many(self.get_value(start), end_aspects, lengths)
         end_time = time.time()
-        print(f"Time taken for aspect DFS: {end_time - start_time} seconds")
-        print(f"From {start} to {[path[-1] for path in shortest_paths_clean]}")
+        # print(f"Time taken for aspect DFS: {end_time - start_time} seconds")
+        # print(f"From {start} to {[path[-1] for path in shortest_paths_clean]}")
 
 
         # We need a list[tuple[List[str], List[Tuple[int, int]]]]
 
         all_paths: list[tuple[List[str], List[Tuple[int, int]]]] = []
         for i in range(len(end_aspects)):
-            # Consider only the cheapest element path
-
             if len(element_paths[i]) == 0:
                 # No element path found
                 continue                
 
-            element_path = element_paths[i][0]
+            # Consider only the cheapest element path
+            # element_path = element_paths[i][0]
+            # all_paths.append((element_path, shortest_paths_clean[i]))
 
-            all_paths.append((element_path, shortest_paths_clean[i]))
 
-        # TODO: unfinished
+            first_element_path = element_paths[i][0]
+            best_element_paths = [first_element_path]
+
+            best_element_path_cost = calculate_cost_of_aspect_path(first_element_path)
+            for alternative_path in element_paths[i][1:]:
+                if calculate_cost_of_aspect_path(alternative_path) != best_element_path_cost:
+                    break
+                best_element_paths.append(alternative_path)
+
+            for element_path in best_element_paths[:aspect_variations]:
+                all_paths.append((element_path, shortest_paths_clean[i]))
 
         # todo: extend, not just for not working but also for cost?
         return all_paths
@@ -363,3 +319,12 @@ class SolvingHexGrid(HexGrid):
         solving_hexgrid = cls()
         solving_hexgrid.grid = deepcopy(hexgrid.grid)
         return solving_hexgrid
+    
+    def copy(self) -> HexGrid:
+        new_instance = SolvingHexGrid()
+        
+        # Does not need to be copied as it is not modified
+        new_instance.grid = self.grid 
+        
+        new_instance.applied_paths = deepcopy(self.applied_paths)
+        return new_instance

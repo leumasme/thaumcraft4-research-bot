@@ -1,8 +1,5 @@
 from thaumcraft4_research_bot.utils.grid import HexGrid, SolvingHexGrid
-from thaumcraft4_research_bot.utils.aspects import (
-    calculate_cost_of_aspect_path,
-    find_all_element_paths_many,
-)
+from thaumcraft4_research_bot.utils.aspects import calculate_cost_of_aspect_path
 from typing import Tuple, List, Dict
 
 
@@ -66,17 +63,60 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
     path_indices: List[int] = []
     index = 0  # write head
 
-    while index < len(nodes_to_connect):
+    best_solution: SolvingHexGrid
+    best_solution_cost: int = 99999999
+
+    total_runs = 0
+
+    while True:
+        total_runs += 1
+        if index == len(nodes_to_connect):
+            # Found a Solution
+            new_cost = solving.calculate_cost()
+            # print("Found a solution of cost", new_cost)
+            if new_cost < best_solution_cost:
+                print("Found a new best solution of cost", new_cost)
+                best_solution = solving.copy()
+                best_solution_cost = best_solution.calculate_cost()
+            # TODO: refactor merge
+            index -= 1
+            path_indices.pop()
+            solving.applied_paths.pop()
+            all_paths.pop()
+            while path_indices[index - 1] == len(all_paths[index - 1]) - 1:
+                print(
+                    "Pathfinding failed and no previous path alternatives left, backtracking"
+                )
+                # No more paths to try for this one, backtrack
+                index -= 1
+
+                if index == 0:
+                    print("Done! Lowest Solution cost is", best_solution_cost, "at", total_runs)
+                    return best_solution
+
+                path_indices.pop()
+                solving.applied_paths.pop()
+                all_paths.pop()
+
+            path_indices[index - 1] += 1
+
+            # print("Indexing i", index, "allpaths", len(all_paths))
+            # print(
+            #     "Indexing sub i",
+            #     path_indices[index - 1],
+            #     "allpaths",
+            #     len(all_paths[index - 1]),
+            # )
+            current_elem_path, current_board_path = all_paths[index - 1][
+                path_indices[index - 1]
+            ]
+            solving.applied_paths[index - 1] = list(
+                zip(current_elem_path, current_board_path)
+            )
+
         start, end = nodes_to_connect[index]
 
-        print("Ringsolver stage 2 is Pathfinding from", start, "to", end)
-
-        # board_paths: List[List[Tuple[int, int]]]
-        # element_paths: List[List[str]]
-
-        # board_paths, element_paths = solving.pathfind_both(start, end)
-
-        # new_paths = [(element_paths[0], board_path) for board_path in board_paths]
+        # print("Ringsolver stage 2 is Pathfinding from", start, "to", end)
 
         all_placed_aspects = [
             coords
@@ -84,19 +124,9 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
             for (_, coords) in applied_path
         ]
 
-        print("All placed aspects:", all_placed_aspects)
+        new_paths = solving.pathfind_both_many(end, all_placed_aspects + [start], 1)
 
-        new_paths = solving.pathfind_both_many(end, all_placed_aspects + [start])
-
-        # for applied_path in solving.applied_paths:
-        #     for _, coords in applied_path[1:-1]:
-        #         # maybe could be made cheaper? maybe use bfs here? TODO: do multiple paths at once!
-        #         board_paths, element_paths = solving.pathfind_both(
-        #             coords, end
-        #         )  # order matters!
-        #         new_paths += [
-        #             (element_paths[0], board_path) for board_path in board_paths
-        #         ]
+        # print("Amount of paths found:", len(new_paths))
 
         if len(new_paths) == 0:
             print("Pathfinding failed, alternating previous path")
@@ -106,7 +136,7 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
                     "Ringsolver failed: Pathfinding failed on very first path"
                 )
 
-            if path_indices[index - 1] == len(all_paths[index - 1]) - 1:
+            while path_indices[index - 1] == len(all_paths[index - 1]) - 1:
                 print(
                     "Pathfinding failed and no previous path alternatives left, backtracking"
                 )
@@ -114,12 +144,16 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
                 index -= 1
 
                 if index == 0:
-                    raise Exception(
-                        "Ringsolver failed: Backtracked all the way to the start"
-                    )
+                    print("Done! Lowest Solution cost is", best_solution_cost, "at", total_runs)
+                    return best_solution
+                    # raise Exception(
+                    #     "Ringsolver failed: Backtracked all the way to the start"
+                    # )
 
                 path_indices.pop()
                 solving.applied_paths.pop()
+                all_paths.pop()
+
             path_indices[index - 1] += 1
 
             current_elem_path, current_board_path = all_paths[index - 1][
@@ -142,11 +176,11 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
         path_indices.append(0)
         index += 1
 
-        print(
-            f"Ringsolver applied path from {initial_board_path[0]} to {initial_board_path[-1]} : {initial_elem_path} {initial_board_path}",
-        )
+        # print(
+        #     f"Ringsolver applied path from {initial_board_path[0]} to {initial_board_path[-1]} : {initial_elem_path} {initial_board_path}",
+        # )
 
         # TODO: do we still want to backtrack already if no direct connection is found?
         # alternate connections may be shorter anyway. probably doesn't matter
 
-    return solving
+    return best_solution
