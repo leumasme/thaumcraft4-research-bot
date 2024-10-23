@@ -9,6 +9,7 @@ from thaumcraft4_research_bot.utils.aspects import find_all_element_paths_of_len
 
 
 class HexGrid:
+    # Grid coordinate -> Aspect, Screen Coordinate
     grid: Dict[Tuple[int, int], Tuple[str, Tuple[int, int]]]
 
     def __init__(self) -> None:

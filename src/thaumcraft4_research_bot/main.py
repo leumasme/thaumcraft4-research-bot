@@ -97,6 +97,7 @@ def group_hexagons(empty_hexagons, board_aspects, image_height):
     smallest_y_diff = image_height
 
     for _, coords in grouped_items:
+        # Sort rows by y
         coords.sort(key=lambda c: c[1])
 
         if len(coords) == 1:
@@ -225,17 +226,19 @@ def main():
             draw_board_path(image, solved, path)
 
         draw_board_coords(solved, draw)
-        
+
         image.save("debug_render.png")
 
-        print("Applied paths is", solved.applied_paths)
-
-        if test_mode: break
+        if test_mode:
+            break
         for path in solved.applied_paths:
             for aspect, coord in path[1:-1]:
-                place_aspect_at(window_base_coords, inventory_aspects, grid, aspect, coord)
+                place_aspect_at(
+                    window_base_coords, inventory_aspects, grid, aspect, coord
+                )
 
         input("-- Press enter to process next board --")
+
 
 if __name__ == "__main__":
     main()
