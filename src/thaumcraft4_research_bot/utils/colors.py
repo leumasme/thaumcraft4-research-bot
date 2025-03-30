@@ -79,7 +79,6 @@ rgb_to_aspect_map = {
     name: hex_to_rgb(hex_code) for name, hex_code in aspect_colors.items()
 }
 
-
 def rgb_to_aspect(rgb_color):
     for name, rgb in rgb_to_aspect_map.items():
         if rgb == rgb_color:

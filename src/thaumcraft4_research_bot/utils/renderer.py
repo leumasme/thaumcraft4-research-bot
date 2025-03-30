@@ -5,13 +5,13 @@ from typing import Tuple, List
 from thaumcraft4_research_bot.utils.grid import HexGrid
 from thaumcraft4_research_bot.utils.finder import get_center_of_box
 from thaumcraft4_research_bot.utils.colors import aspect_colors
-
+from thaumcraft4_research_bot.utils.log import log
 
 def get_aspect_icon_from_name(name):
     try:
         return PIL.Image.open(f"resources/aspects/color/{name}.png")
     except FileNotFoundError:
-        print(f"!!! Could not find aspect icon for {name}")
+        log.warning(f"Could not find aspect icon for {name}")
         return PIL.Image.open("resources/aspects/mono/perditio.png")
 
 

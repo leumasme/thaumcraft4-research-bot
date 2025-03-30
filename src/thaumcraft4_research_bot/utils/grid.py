@@ -83,7 +83,7 @@ class HexGrid:
                         queue.append(neighbor)
 
         if not end in seen:
-            print("!!! Found no board paths")
+            log.error("!!! Found no board paths")
             return None
 
         path = []

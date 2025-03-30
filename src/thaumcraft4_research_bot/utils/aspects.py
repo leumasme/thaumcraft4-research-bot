@@ -1,5 +1,7 @@
 from typing import List, Tuple
 
+from thaumcraft4_research_bot.utils.log import log
+
 aspect_parents = {
     "aer": (None, None),
     "aqua": (None, None),
@@ -112,10 +114,10 @@ while remaining_aspects:
             progress = True
     if not progress:
         # Cannot compute aspect costs due to missing parents or cycles
-        print(
+        log.error(
             "Cannot compute aspect costs for some aspects due to missing parents or cycles:"
         )
-        print(", ".join(remaining_aspects))
+        log.error(", ".join(remaining_aspects))
         break
 
 # Make sure the cheaper aspects are first in the neighbor list

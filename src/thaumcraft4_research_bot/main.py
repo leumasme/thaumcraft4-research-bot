@@ -7,6 +7,7 @@ import PIL.Image
 from typing import Tuple
 import time
 import sys
+import traceback
 
 # Local libs
 from thaumcraft4_research_bot.utils.window import *
@@ -15,6 +16,7 @@ from thaumcraft4_research_bot.utils.grid import HexGrid, SolvingHexGrid
 from thaumcraft4_research_bot.utils.aspects import aspect_parents
 from thaumcraft4_research_bot.utils.solvers.ringsolver import solve as ringsolver_solve
 from thaumcraft4_research_bot.utils.renderer import *
+from thaumcraft4_research_bot.utils.log import log
 
 # Disable 0.1 seconds delay between each pyautogui call
 gui.PAUSE = 0
@@ -84,7 +86,7 @@ def test_all_samples():
             grid, inventory_aspects = generate_hexgrid_from_image(image, None)
             end_time = time.time()
         except Exception as e:
-            print("Failed to parse:", e)
+            print("Failed to parse:", traceback.format_exc())
             continue
 
         parse_time_ms = (end_time - start_time) * 1000
@@ -94,7 +96,7 @@ def test_all_samples():
             solved = generate_solution_from_hexgrid(grid)
             end_time = time.time()
         except Exception as e:
-            print("Failed to solve:", e)
+            print("Failed to solve:", traceback.format_exc())
             continue
 
         solve_time_ms = (end_time - start_time) * 1000
@@ -135,23 +137,22 @@ def analyze_image(image: PIL.Image.Image, skip_inventory=False):
     board = find_frame(image, pixels, (150, 123, 123))
 
     board_aspects = find_aspects_in_frame(board, pixels)
-    print("Aspects on board:" + board_aspects)
+    log.debug("Aspects on board: %s", board_aspects)
 
     empty_hexagons = find_squares_in_frame(board, pixels, (195, 195, 195))
-    print("Empty spaces on board:" + empty_hexagons)
+    log.debug("Empty spaces on board: %s", empty_hexagons)
 
     if skip_inventory:
         return board_aspects, empty_hexagons, []
 
-    print("Aspects in inventory:")
     start_time = time.time()
     inventory_aspects = find_aspects_in_frame(
         frame_aspects_left, pixels
     ) + find_aspects_in_frame(frame_aspects_right, pixels)
     end_time = time.time()
 
-    print(f"Time taken to find inventory aspects: {end_time - start_time} seconds")
-    print(inventory_aspects)
+    log.info(f"Time taken to find inventory aspects: {end_time - start_time} seconds")
+    log.debug("Aspects in inventory: %s", inventory_aspects)
 
     return board_aspects, empty_hexagons, inventory_aspects
 
@@ -201,15 +202,15 @@ def group_hexagons(empty_hexagons, board_aspects, image_height):
         column = [coords[0]]
         for i in range(len(coords) - 1):
             curr_diff = coords[i + 1][1] - column[-1][1]
-            print("Curr diff vs expected is", curr_diff, difference_y)
+            log.debug("Curr diff vs expected is", curr_diff, difference_y)
             while curr_diff > 1.5 * difference_y:
                 column.append((coords[i][0], coords[i][1] + difference_y, "Missing"))
                 curr_diff -= difference_y
             column.append(coords[i + 1])
-        print(column)
+        log.debug("Generated board column: %s", column)
         columns.append(column)
 
-    print("Smallest y diff is", smallest_y_diff)
+    log.debug("Smallest y diff between parsed board hexagons is", smallest_y_diff)
     valid_y_coords = []
 
     for col in columns:
@@ -226,11 +227,11 @@ def group_hexagons(empty_hexagons, board_aspects, image_height):
     # Patch holes in valid y coords
     for i in range(len(valid_y_coords) - 1):
         if valid_y_coords[i + 1] - valid_y_coords[i] > 0.75 * smallest_y_diff:
-            print("Fixing Y-hole between", valid_y_coords[i], valid_y_coords[i + 1])
+            log.debug("Fixing Y-hole between", valid_y_coords[i], valid_y_coords[i + 1])
             valid_y_coords.append(valid_y_coords[i] + smallest_y_diff * 0.5)
 
     valid_y_coords.sort()
-    print("Valid Y coords:", valid_y_coords)
+    log.debug("Valid Y coords: %s", valid_y_coords)
 
     return columns, valid_y_coords, smallest_y_diff
 
@@ -248,8 +249,6 @@ def build_grid(columns, valid_y_coords, grid: HexGrid, smallest_y_diff):
                 raise Exception("Y value failure", y, valid_y_coords)
 
             grid.set_hex((x_index, y_index), value, (x, y))
-    print("Grid is", grid.grid)
-
 
 def generate_hexgrid_from_image(
     image: Image, cached_inventory_aspects: list[OnscreenAspect]
@@ -263,8 +262,8 @@ def generate_hexgrid_from_image(
         for aspect, (parent_a, parent_b) in aspect_parents.items():
             if not any([name == aspect for _, name in cached_inventory_aspects]):
                 missing = True
-                print(
-                    f"WARNING: Missing aspect {aspect} from inventory (made from {parent_a} + {parent_b})"
+                log.error(
+                    f"Missing aspect {aspect} from inventory (made from {parent_a} + {parent_b})"
                 )
         if missing:
             raise Exception("Missing aspects from inventory... safety shutdown")
@@ -273,7 +272,7 @@ def generate_hexgrid_from_image(
     )
     grid = HexGrid()
     build_grid(columns, valid_y_coords, grid, smallest_y_diff)
-    print("Grid:", grid.grid)
+    log.debug("Grid: %s", grid.grid)
 
     return (grid, cached_inventory_aspects)
 
@@ -284,19 +283,19 @@ def generate_solution_from_hexgrid(grid: HexGrid) -> SolvingHexGrid:
         if name != "Free" and name != "Missing":
             start_aspects.append((grid_x, grid_y))
 
-    print("Starting solve computation")
+    log.debug("Starting solve computation")
     start_time = time.time()
     solved = ringsolver_solve(grid, start_aspects)
     end_time = time.time()
 
-    print(f"Time taken to compute solution: {end_time - start_time} seconds")
-    print("Total solution cost:", solved.calculate_cost())
+    log.info(f"Time taken to compute solution: {end_time - start_time} seconds")
+    log.info("Total solution cost: %s", solved.calculate_cost())
     return solved
 
 
 def save_input_image(image: Image, grid: HexGrid):
     board_hash = grid.hash_board()[:6]
-    print("Board hash is", board_hash)
+    log.info("Saving sample image, Board hash is", board_hash)
     img_path = Path("./test_inputs/board_" + board_hash + ".png")
     if not img_path.exists():
         img_path.parent.mkdir(exist_ok=True)
@@ -314,7 +313,7 @@ def place_aspect_at(
         (loc for loc, name in inventory_aspects if name == aspect), None
     )
     if inventory_location is None:
-        print("Could not find aspect", aspect, "in inventory", inventory_aspects)
+        log.error("Could not find aspect %s in inventory %s", aspect, inventory_aspects)
         return
 
     invImgX, invImgY = get_center_of_box(inventory_location)

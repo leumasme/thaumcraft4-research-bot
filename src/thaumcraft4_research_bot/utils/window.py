@@ -5,6 +5,8 @@ import pyautogui as gui
 from PIL.Image import Image
 from typing import Tuple
 
+from thaumcraft4_research_bot.utils.log import log
+
 # Import necessary Windows API functions and types
 user32 = ctypes.WinDLL("user32", use_last_error=True)
 
@@ -72,7 +74,7 @@ def find_game() -> gw.Win32Window:
     ]
     if len(windows) != 1:
         for window in windows:
-            print(window)
+            log.error(window)
         raise Exception("Wrong number of game windows: " + str(len(windows)))
     return windows[0]
 

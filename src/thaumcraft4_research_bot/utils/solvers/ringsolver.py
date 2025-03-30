@@ -1,7 +1,8 @@
-from thaumcraft4_research_bot.utils.grid import HexGrid, SolvingHexGrid
-from thaumcraft4_research_bot.utils.aspects import calculate_cost_of_aspect_path
 from typing import Tuple, List, Dict
 
+from thaumcraft4_research_bot.utils.grid import HexGrid, SolvingHexGrid
+from thaumcraft4_research_bot.utils.aspects import calculate_cost_of_aspect_path
+from thaumcraft4_research_bot.utils.log import log
 
 def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid:
     solving = SolvingHexGrid.from_hexgrid(grid)
@@ -57,7 +58,7 @@ class RingSolver:
         """
         :returns: False if there's nothing to backtrack to (search is done)
         """
-        print(
+        log.debug(
             "Pathfinding failed and no previous path alternatives left, backtracking"
         )
         # No more paths to try for this one, backtrack
@@ -65,7 +66,7 @@ class RingSolver:
 
         if self.index == 0:
             # print("Done! Lowest Solution cost is", self.best_solution_cost, "at", self.total_runs)
-            print("Done! Lowest Solution cost is", self.best_solution_cost)
+            log.info("Done! Lowest Solution cost is", self.best_solution_cost)
             return False
 
         self.path_indices.pop()
@@ -100,7 +101,7 @@ class RingSolver:
 
             closest_neighbors[start_aspect] = neigh_paths[:2]
 
-        print("Closest neighbors:", closest_neighbors)
+        log.debug("Closest neighbors:", closest_neighbors)
 
         nodes_to_connect = []
         seen_hexes = set()
@@ -131,9 +132,9 @@ class RingSolver:
     def report_solution(self):
         assert self.index == len(self.nodes_to_connect)
         new_cost = self.solving.calculate_cost()
-        print("Found a solution of cost", new_cost)
+        log.debug("Found a solution of cost", new_cost)
         if new_cost < self.best_solution_cost:
-            print("Found a new best solution of cost", new_cost)
+            log.debug("Found a new best solution of cost", new_cost)
             self.best_solution = self.solving.copy()
             self.best_solution_cost = self.best_solution.calculate_cost()
 
