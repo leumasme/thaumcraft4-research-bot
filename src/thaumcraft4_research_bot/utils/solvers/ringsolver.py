@@ -159,6 +159,7 @@ class RingSolver:
         new_paths = self.solving.pathfind_both_many(end, [start] + alternative_targets, 1)
 
         if len(new_paths) == 0:
+            # print("No paths found for ", end, [start] + alternative_targets)
             return self.alternate_previous_path()
 
         new_paths.sort(
@@ -184,5 +185,3 @@ class RingSolver:
             done = not self.do_solver_iteration()
 
         return self.best_solution
-
-

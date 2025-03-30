@@ -18,6 +18,44 @@ from thaumcraft4_research_bot.utils.renderer import *
 # Disable 0.1 seconds delay between each pyautogui call
 gui.PAUSE = 0
 
+# (min_x, min_y, max_x, max_y), aspect_name
+type OnscreenAspect = Tuple[Tuple[int, int, int, int], str]
+
+TEST_MODE = False
+
+def main():
+    inventory_aspects: list[OnscreenAspect] = None
+    while True:
+        image, window_base_coords = setup_image(
+            TEST_MODE, inventory_aspects is not None
+        )
+
+        grid, inventory_aspects = generate_hexgrid_from_image(image, inventory_aspects)
+
+        save_input_image(image, grid)
+
+        solved = generate_solution_from_hexgrid(grid)
+
+        for path in solved.applied_paths:
+            draw_board_path(image, solved, path)
+
+        draw = ImageDraw.Draw(image)
+        draw_board_coords(solved, draw)
+
+        image.save("debug_render.png")
+
+        if TEST_MODE:
+            break
+        for path in solved.applied_paths:
+            for aspect, coord in path[1:-1]:
+                place_aspect_at(
+                    window_base_coords, inventory_aspects, grid, aspect, coord
+                )
+
+        input("-- Press enter to process next board --")
+
+if __name__ == "__main__":
+    main()
 
 def setup_image(test_mode=True, skip_focus=False):
     if test_mode:
@@ -168,81 +206,52 @@ def build_grid(columns, valid_y_coords, grid: HexGrid, smallest_y_diff):
             grid.set_hex((x_index, y_index), value, (x, y))
     print("Grid is", grid.grid)
 
-
-def main():
-    inventory_aspects: list[Tuple[Tuple[int, int, int, int], str]] = None
-    test_mode = False
-    while True:
-        image, window_base_coords = setup_image(
-            test_mode, inventory_aspects is not None
-        )
-        draw = ImageDraw.Draw(image)
-
-        board_aspects, empty_hexagons, new_inventory_aspects = analyze_image(
-            image, inventory_aspects is not None
-        )
-        if inventory_aspects is None:
-            inventory_aspects = new_inventory_aspects
-            missing = False
-            for aspect, (parent_a, parent_b) in aspect_parents.items():
-                if not any([name == aspect for _, name in inventory_aspects]):
-                    missing = True
-                    print(
-                        f"WARNING: Missing aspect {aspect} from inventory (made from {parent_a} + {parent_b})"
-                    )
-            if missing:
-                raise Exception("Missing aspects from inventory... safety shutdown")
-
-        columns, valid_y_coords, smallest_y_diff = group_hexagons(
-            empty_hexagons, board_aspects, image.height
-        )
-
-        grid = HexGrid()
-        build_grid(columns, valid_y_coords, grid, smallest_y_diff)
-        print("Grid:", grid.grid)
-
-        board_hash = grid.hash_board()[:6]
-        print("Board hash is", board_hash)
-        img_path = Path("./test_inputs/board_" + board_hash + ".png")
-        if not img_path.exists():
-            img_path.parent.mkdir(exist_ok=True)
-            image.save(str(img_path))
-
-        start_aspects: list[Tuple[int, int]] = []
-        for (grid_x, grid_y), (name, _) in grid.grid.items():
-            if name != "Free" and name != "Missing":
-                start_aspects.append((grid_x, grid_y))
-
-        solved: SolvingHexGrid
-        print("Starting solve computation")
-        start_time = time.time()
-        solved = ringsolver_solve(grid, start_aspects)
-        end_time = time.time()
-
-        print(f"Time taken to compute solution: {end_time - start_time} seconds")
-        print("Total solution cost:", solved.calculate_cost())
-
-        for path in solved.applied_paths:
-            draw_board_path(image, solved, path)
-
-        draw_board_coords(solved, draw)
-
-        image.save("debug_render.png")
-
-        if test_mode:
-            break
-        for path in solved.applied_paths:
-            for aspect, coord in path[1:-1]:
-                place_aspect_at(
-                    window_base_coords, inventory_aspects, grid, aspect, coord
+def generate_hexgrid_from_image(image: Image, cached_inventory_aspects: list[OnscreenAspect]) -> Tuple[HexGrid, list[OnscreenAspect]]:
+    board_aspects, empty_hexagons, new_inventory_aspects = analyze_image(
+        image, cached_inventory_aspects is not None
+    )
+    if cached_inventory_aspects is None:
+        cached_inventory_aspects = new_inventory_aspects
+        missing = False
+        for aspect, (parent_a, parent_b) in aspect_parents.items():
+            if not any([name == aspect for _, name in cached_inventory_aspects]):
+                missing = True
+                print(
+                    f"WARNING: Missing aspect {aspect} from inventory (made from {parent_a} + {parent_b})"
                 )
+        if missing:
+            raise Exception("Missing aspects from inventory... safety shutdown")
+    columns, valid_y_coords, smallest_y_diff = group_hexagons(
+        empty_hexagons, board_aspects, image.height
+    )
+    grid = HexGrid()
+    build_grid(columns, valid_y_coords, grid, smallest_y_diff)
+    print("Grid:", grid.grid)
+    
+    return (grid, cached_inventory_aspects)
 
-        input("-- Press enter to process next board --")
+def generate_solution_from_hexgrid(grid: HexGrid) -> SolvingHexGrid:
+    start_aspects: list[Tuple[int, int]] = []
+    for (grid_x, grid_y), (name, _) in grid.grid.items():
+        if name != "Free" and name != "Missing":
+            start_aspects.append((grid_x, grid_y))
 
+    print("Starting solve computation")
+    start_time = time.time()
+    solved = ringsolver_solve(grid, start_aspects)
+    end_time = time.time()
 
-if __name__ == "__main__":
-    main()
+    print(f"Time taken to compute solution: {end_time - start_time} seconds")
+    print("Total solution cost:", solved.calculate_cost())
+    return solved
 
+def save_input_image(image: Image, grid: HexGrid):
+    board_hash = grid.hash_board()[:6]
+    print("Board hash is", board_hash)
+    img_path = Path("./test_inputs/board_" + board_hash + ".png")
+    if not img_path.exists():
+        img_path.parent.mkdir(exist_ok=True)
+        image.save(str(img_path))
 
 def place_aspect_at(
     window_base_coords,
