@@ -6,6 +6,7 @@ from PIL import ImageDraw
 import PIL.Image
 from typing import Tuple
 import time
+import sys
 
 # Local libs
 from thaumcraft4_research_bot.utils.window import *
@@ -21,9 +22,24 @@ gui.PAUSE = 0
 # (min_x, min_y, max_x, max_y), aspect_name
 type OnscreenAspect = Tuple[Tuple[int, int, int, int], str]
 
-TEST_MODE = False
+MODE = sys.argv[1] if len(sys.argv) > 1 else None
+TEST_MODE = MODE == "test"  # Read debug_input and dont perform actions
+TEST_ALL_MODE = MODE == "test_all"  # Run test for all collected test_inputs
+
 
 def main():
+    print("MODE=", MODE)
+    if TEST_ALL_MODE:
+        test_all_samples()
+    else:
+        normal_mode()
+
+
+if __name__ == "__main__":
+    main()
+
+
+def normal_mode():
     inventory_aspects: list[OnscreenAspect] = None
     while True:
         image, window_base_coords = setup_image(
@@ -54,8 +70,38 @@ def main():
 
         input("-- Press enter to process next board --")
 
-if __name__ == "__main__":
-    main()
+
+def test_all_samples():
+    test_files = list(Path("./test_inputs").glob("board_*.png"))
+    print(f"Found {len(test_files)} test samples to check")
+
+    for test_file in test_files:
+        print("Testing file", test_file)
+        image = PIL.Image.open(test_file)
+
+        try:
+            start_time = time.time()
+            grid, inventory_aspects = generate_hexgrid_from_image(image, None)
+            end_time = time.time()
+        except Exception as e:
+            print("Failed to parse:", e)
+            continue
+
+        parse_time_ms = (end_time - start_time) * 1000
+
+        try:
+            start_time = time.time()
+            solved = generate_solution_from_hexgrid(grid)
+            end_time = time.time()
+        except Exception as e:
+            print("Failed to solve:", e)
+            continue
+
+        solve_time_ms = (end_time - start_time) * 1000
+        print(
+            f"Solved with score {solved.calculate_cost()} in {parse_time_ms:.2f}+{solve_time_ms:.2f}ms"
+        )
+
 
 def setup_image(test_mode=True, skip_focus=False):
     if test_mode:
@@ -88,13 +134,11 @@ def analyze_image(image: PIL.Image.Image, skip_inventory=False):
     frame_aspects_right = find_frame(image, pixels, (200, 123, 123))
     board = find_frame(image, pixels, (150, 123, 123))
 
-    print("Aspects on board:")
     board_aspects = find_aspects_in_frame(board, pixels)
-    print(board_aspects)
+    print("Aspects on board:" + board_aspects)
 
-    print("Empty spaces on board:")
     empty_hexagons = find_squares_in_frame(board, pixels, (195, 195, 195))
-    print(empty_hexagons)
+    print("Empty spaces on board:" + empty_hexagons)
 
     if skip_inventory:
         return board_aspects, empty_hexagons, []
@@ -206,7 +250,10 @@ def build_grid(columns, valid_y_coords, grid: HexGrid, smallest_y_diff):
             grid.set_hex((x_index, y_index), value, (x, y))
     print("Grid is", grid.grid)
 
-def generate_hexgrid_from_image(image: Image, cached_inventory_aspects: list[OnscreenAspect]) -> Tuple[HexGrid, list[OnscreenAspect]]:
+
+def generate_hexgrid_from_image(
+    image: Image, cached_inventory_aspects: list[OnscreenAspect]
+) -> Tuple[HexGrid, list[OnscreenAspect]]:
     board_aspects, empty_hexagons, new_inventory_aspects = analyze_image(
         image, cached_inventory_aspects is not None
     )
@@ -227,8 +274,9 @@ def generate_hexgrid_from_image(image: Image, cached_inventory_aspects: list[Ons
     grid = HexGrid()
     build_grid(columns, valid_y_coords, grid, smallest_y_diff)
     print("Grid:", grid.grid)
-    
+
     return (grid, cached_inventory_aspects)
+
 
 def generate_solution_from_hexgrid(grid: HexGrid) -> SolvingHexGrid:
     start_aspects: list[Tuple[int, int]] = []
@@ -245,6 +293,7 @@ def generate_solution_from_hexgrid(grid: HexGrid) -> SolvingHexGrid:
     print("Total solution cost:", solved.calculate_cost())
     return solved
 
+
 def save_input_image(image: Image, grid: HexGrid):
     board_hash = grid.hash_board()[:6]
     print("Board hash is", board_hash)
@@ -252,6 +301,7 @@ def save_input_image(image: Image, grid: HexGrid):
     if not img_path.exists():
         img_path.parent.mkdir(exist_ok=True)
         image.save(str(img_path))
+
 
 def place_aspect_at(
     window_base_coords,
