@@ -75,12 +75,17 @@ def hex_to_rgb(hex_color):
     return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
 
 
-rgb_to_aspect_map = {
+aspect_to_rgb_map = {
     name: hex_to_rgb(hex_code) for name, hex_code in aspect_colors.items()
 }
 
+rgb_to_aspect_map = {
+    (r, g, b): name for name, (r, g, b) in aspect_to_rgb_map.items()
+}
+
 def rgb_to_aspect(rgb_color):
-    for name, rgb in rgb_to_aspect_map.items():
-        if rgb == rgb_color:
-            return name
-    return None
+    return rgb_to_aspect_map.get(rgb_color)
+    # for name, rgb in aspect_to_rgb_map.items():
+    #     if rgb == rgb_color:
+    #         return name
+    # return None
