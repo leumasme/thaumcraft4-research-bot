@@ -125,7 +125,7 @@ class HexGrid:
         # print("Found", len(all_paths), "paths of length", n)
         return all_paths
 
-    def pathfind_shortest_to_many(
+    def pathfind_board_shortest_to_many(
         self, start: Tuple[int, int], ends_arg: List[Tuple[int, int]]
     ):
         seen = {start: (0, None)}
@@ -168,7 +168,8 @@ class HexGrid:
         # Didn't find all ends
         return found_paths
 
-    def pathfind_board_all_to_many(
+    # TODO: Use this?
+    def pathfind_board_lengths_to_many(
         self, start: Tuple[int, int], ends_arg: List[Tuple[int, int]], n_list: List[int]
     ):
         ends = set(ends_arg)
@@ -199,7 +200,7 @@ class HexGrid:
         return paths_many
 
     def pathfind_both_many(self, start: Tuple[int, int], ends: List[Tuple[int, int]], aspect_variations = 1):
-        shortest_path_list = self.pathfind_shortest_to_many(start, ends)
+        shortest_path_list = self.pathfind_board_shortest_to_many(start, ends)
 
         # would this be correctly aligned with each other?
         # end_aspects = [self.get_value(end) for end in shortest_path_dict.keys()]
