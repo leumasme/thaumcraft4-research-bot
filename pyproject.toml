@@ -3,7 +3,7 @@ name = "thaumcraft4-research-bot"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "pillow>=10.4.0",
     "pyautogui>=0.9.54",
