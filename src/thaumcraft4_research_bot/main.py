@@ -48,7 +48,11 @@ def normal_mode():
             TEST_MODE, inventory_aspects is not None
         )
 
-        grid, inventory_aspects = generate_hexgrid_from_image(image, inventory_aspects)
+        pixels = image.load()
+        grid = generate_hexgrid_from_image(image, pixels)
+
+        if inventory_aspects is None:
+            inventory_aspects = generate_inventory_aspects_from_image(image, pixels)
 
         save_input_image(image, grid)
 
@@ -83,7 +87,8 @@ def test_all_samples():
 
         try:
             start_time = time.time()
-            grid, inventory_aspects = generate_hexgrid_from_image(image, None)
+            pixels = image.load()
+            grid = generate_hexgrid_from_image(image, pixels)
             end_time = time.time()
         except Exception as e:
             print("Failed to parse:", traceback.format_exc())
@@ -129,11 +134,9 @@ def setup_image(test_mode=True, skip_focus=False):
     return image, window_base_coords
 
 
-def analyze_image(image: PIL.Image.Image, skip_inventory=False):
+def analyze_image_board(image: PIL.Image.Image, pixels):
     pixels = image.load()
 
-    frame_aspects_left = find_frame(image, pixels, (100, 123, 123))
-    frame_aspects_right = find_frame(image, pixels, (200, 123, 123))
     board = find_frame(image, pixels, (150, 123, 123))
 
     board_aspects = find_aspects_in_frame(board, pixels)
@@ -142,8 +145,12 @@ def analyze_image(image: PIL.Image.Image, skip_inventory=False):
     empty_hexagons = find_squares_in_frame(board, pixels, (195, 195, 195))
     log.debug("Empty spaces on board: %s", empty_hexagons)
 
-    if skip_inventory:
-        return board_aspects, empty_hexagons, []
+    return board_aspects, empty_hexagons
+
+
+def analyze_image_inventory(image: PIL.Image.Image, pixels):
+    frame_aspects_left = find_frame(image, pixels, (100, 123, 123))
+    frame_aspects_right = find_frame(image, pixels, (200, 123, 123))
 
     start_time = time.time()
     inventory_aspects = find_aspects_in_frame(
@@ -154,7 +161,7 @@ def analyze_image(image: PIL.Image.Image, skip_inventory=False):
     log.info(f"Time taken to find inventory aspects: {end_time - start_time} seconds")
     log.debug("Aspects in inventory: %s", inventory_aspects)
 
-    return board_aspects, empty_hexagons, inventory_aspects
+    return inventory_aspects
 
 
 def group_hexagons(empty_hexagons, board_aspects, image_height):
@@ -250,23 +257,28 @@ def build_grid(columns, valid_y_coords, grid: HexGrid, smallest_y_diff):
 
             grid.set_hex((x_index, y_index), value, (x, y))
 
-def generate_hexgrid_from_image(
-    image: Image, cached_inventory_aspects: list[OnscreenAspect]
-) -> Tuple[HexGrid, list[OnscreenAspect]]:
-    board_aspects, empty_hexagons, new_inventory_aspects = analyze_image(
-        image, cached_inventory_aspects is not None
+def generate_inventory_aspects_from_image(
+    image: Image, pixels
+) -> list[OnscreenAspect]:
+    inventory_aspects = analyze_image_inventory(image, pixels)
+    
+    inventory_aspects = inventory_aspects
+    missing = False
+    for aspect, (parent_a, parent_b) in aspect_parents.items():
+        if not any([name == aspect for _, name in inventory_aspects]):
+            missing = True
+            log.error(
+                f"Missing aspect {aspect} from inventory (made from {parent_a} + {parent_b})"
+            )
+    if missing:
+        raise Exception("Missing aspects from inventory... safety shutdown")
+    
+    return inventory_aspects
+
+def generate_hexgrid_from_image(image: Image, pixels) -> HexGrid:
+    board_aspects, empty_hexagons = analyze_image_board(
+        image, pixels
     )
-    if cached_inventory_aspects is None:
-        cached_inventory_aspects = new_inventory_aspects
-        missing = False
-        for aspect, (parent_a, parent_b) in aspect_parents.items():
-            if not any([name == aspect for _, name in cached_inventory_aspects]):
-                missing = True
-                log.error(
-                    f"Missing aspect {aspect} from inventory (made from {parent_a} + {parent_b})"
-                )
-        if missing:
-            raise Exception("Missing aspects from inventory... safety shutdown")
     columns, valid_y_coords, smallest_y_diff = group_hexagons(
         empty_hexagons, board_aspects, image.height
     )
@@ -274,7 +286,7 @@ def generate_hexgrid_from_image(
     build_grid(columns, valid_y_coords, grid, smallest_y_diff)
     log.debug("Grid: %s", grid.grid)
 
-    return (grid, cached_inventory_aspects)
+    return grid
 
 
 def generate_solution_from_hexgrid(grid: HexGrid) -> SolvingHexGrid:

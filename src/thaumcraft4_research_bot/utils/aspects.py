@@ -98,6 +98,12 @@ for aspect, parents in aspect_parents.items():
         aspect_costs[aspect] = 1
         remaining_aspects.remove(aspect)
 
+# temp cause im low on aer
+aspect_costs["aqua"] = 2
+aspect_costs["aer"] = 2
+aspect_costs["ignis"] = 2
+aspect_costs["perditio"] = 2
+
 # Iteratively compute costs for aspects whose parents' costs are known
 while remaining_aspects:
     progress = False
