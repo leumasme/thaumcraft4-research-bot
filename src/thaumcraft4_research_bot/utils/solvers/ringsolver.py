@@ -66,7 +66,7 @@ class RingSolver:
 
         if self.index == 0:
             # print("Done! Lowest Solution cost is", self.best_solution_cost, "at", self.total_runs)
-            log.info("Done! Lowest Solution cost is", self.best_solution_cost)
+            log.info("Done! Lowest Solution cost is %s", self.best_solution_cost)
             return False
 
         self.path_indices.pop()
