@@ -174,6 +174,61 @@ def find_all_element_paths_many(start: str, ends_list: List[str], n_list: List[i
 
     return paths_many
 
+def find_all_element_paths_many_2(start: str, ends_list: List[str], n_list: List[int]):
+    max_n = max(n_list)
+
+    # { aspect: [ list of aspects from the previous step that can reach this aspect ] }[] of length max_n
+    steps: List[defaultdict[str, List[str]]] = [defaultdict(list) for _ in range(max_n)]
+
+    previous_step_aspects = [start]
+    for i in range(max_n):
+        for aspect in previous_step_aspects:
+            for neighbor in graph[aspect]:
+                steps[i][neighbor].append(aspect)
+        previous_step_aspects = list(steps[i].keys())
+
+    # Iterate backwards from the end to get a complete list of all paths
+    paths_many: List[List[List[str]]] = [[] for _ in ends_list]
+
+    # Reconstruct paths for each end aspect and target length
+    for idx, (end, target_length) in enumerate(zip(ends_list, n_list)):
+        # Handle special cases
+        if target_length <= 0:
+            continue
+        if target_length == 1:
+            if end == start:
+                paths_many[idx].append([start])
+            continue
+        
+        # Check if the end aspect is reachable in the required number of steps
+        if target_length > max_n or end not in steps[target_length - 1]:
+            continue
+        
+        # Use a recursive function to build all paths
+        def build_path(aspect, path, step):
+            # If we've reached the start of the path
+            if step == 0:
+                if aspect == start:
+                    # We've found a valid path from start to end
+                    paths_many[idx].append(path[::-1])  # Reverse to get start -> end
+                return
+            
+            # Get all aspects from the previous step that can lead to the current aspect
+            prev_aspects = steps[step - 1][aspect]
+            for prev_aspect in prev_aspects:
+                build_path(prev_aspect, path + [prev_aspect], step - 1)
+        
+        # Start building paths from the end aspect
+        build_path(end, [end], target_length - 1)
+        
+        # Sort the paths by cost
+        paths_many[idx].sort(key=calculate_cost_of_aspect_path)
+
+    return paths_many
+
+    
+
+
 def calculate_cost_of_aspect_path(path: List[str]) -> int:
     return sum(aspect_costs[aspect] for aspect in path)
 

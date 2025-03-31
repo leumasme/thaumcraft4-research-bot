@@ -4,7 +4,9 @@ import json
 import time
 from typing import Dict, Tuple, Optional, List
 from copy import deepcopy
-from thaumcraft4_research_bot.utils.aspects import aspect_costs, calculate_cost_of_aspect_path, find_all_element_paths_many
+
+from thaumcraft4_research_bot.utils.aspects import aspect_costs, calculate_cost_of_aspect_path, find_all_element_paths_many, find_all_element_paths_many_2 
+from thaumcraft4_research_bot.utils.log import log
 
 class HexGrid:
     # Grid coordinate -> Aspect, Screen Coordinate
@@ -220,9 +222,10 @@ class HexGrid:
         # print("Searching element paths for", self.get_value(start), "to", end_aspects, "in steps", lengths)
 
         start_time = time.time()
-        element_paths = find_all_element_paths_many(self.get_value(start), end_aspects, lengths)
+        element_paths = find_all_element_paths_many_2(self.get_value(start), end_aspects, lengths)
         end_time = time.time()
-        # print(f"Time taken for aspect DFS: {end_time - start_time} seconds")
+        aspect_pathfind_time_ms = (end_time - start_time) * 1000
+        log.info(f"Time taken for aspect DFS: {aspect_pathfind_time_ms:.2f}ms for max length {max(lengths)}")
         # print(f"From {start} to {[path[-1] for path in shortest_paths_clean]}")
 
 
@@ -243,6 +246,7 @@ class HexGrid:
             best_element_paths = [first_element_path]
 
             best_element_path_cost = calculate_cost_of_aspect_path(first_element_path)
+            # Find all paths that share the best cost
             for alternative_path in element_paths[i][1:]:
                 if calculate_cost_of_aspect_path(alternative_path) != best_element_path_cost:
                     break

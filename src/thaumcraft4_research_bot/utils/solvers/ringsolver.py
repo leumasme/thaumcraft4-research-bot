@@ -14,7 +14,7 @@ class RingSolver:
     solving: SolvingHexGrid
     start_aspects: List[Tuple[int, int]]
 
-    best_solution: SolvingHexGrid
+    best_solution: SolvingHexGrid = None
     best_solution_cost = 999999999 # TODO: proper placeholder value
 
     # (type[], (x, y)[])[][]

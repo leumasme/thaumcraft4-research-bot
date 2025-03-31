@@ -300,7 +300,9 @@ def generate_solution_from_hexgrid(grid: HexGrid) -> SolvingHexGrid:
     solved = ringsolver_solve(grid, start_aspects)
     end_time = time.time()
 
-    log.info(f"Time taken to compute solution: {end_time - start_time} seconds")
+    generate_solution_from_hexgrid_ms = (end_time - start_time) * 1000
+
+    log.info(f"Time taken to compute solution: {generate_solution_from_hexgrid_ms:.2f}ms")
     log.info("Total solution cost: %s", solved.calculate_cost())
     return solved
 
