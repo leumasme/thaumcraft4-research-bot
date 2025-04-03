@@ -1,7 +1,8 @@
 from typing import Set, Tuple, List
+import numpy as np
 
 from thaumcraft4_research_bot.utils.colors import rgb_to_aspect
-
+from thaumcraft4_research_bot.utils.log import log
 
 # Function to check if there are consecutive pixels of the same color in a direction
 def has_consecutive_pixels(image, pixels, x, y, dx, dy):
@@ -43,6 +44,34 @@ def find_frame(image, pixels, target_color):
                     right_x, bottom_y = x, y
     return (left_x, top_y, right_x, bottom_y)
 
+def find_frame(image, target_color):
+    # Convert PIL image to numpy array
+    img_array = np.array(image)
+    
+    # Doing this on all 3 channels manually is much faster than using np.all() for some reason?
+    # mask = np.all(img_array == np.array(target_color), axis=2)
+    r_match = img_array[:,:,0] == target_color[0]
+    g_match = img_array[:,:,1] == target_color[1]
+    b_match = img_array[:,:,2] == target_color[2]
+    mask = r_match & g_match & b_match
+
+    y_indices, x_indices = np.where(mask)
+    min_x, max_x = np.min(x_indices), np.max(x_indices)
+    min_y, max_y = np.min(y_indices), np.max(y_indices)
+
+    # Sanity Checks. There could randomly be other pixels with the frame color that mess this up
+    dx = max_x - min_x
+    dy = max_y - min_y
+    if dx < 10 or dy < 10:
+        log.error("Frame too small, frame detection failed... x:%s-%s y:%s-%s", min_x, max_x, min_y, max_y)
+        raise Exception("Frame too small, frame detection failed...")
+    
+    # Check all corners to ensure they actually have the right color
+    if not (mask[min_y, min_x] and mask[min_y, max_x] and mask[max_y, min_x] and mask[max_y, max_x]):
+        log.error("Corners of the frame do not match the target color... x:%s-%s y:%s-%s", min_x, max_x, min_y, max_y)
+        raise Exception("Corners of the frame do not match the target color...")
+
+    return (min_x, min_y, max_x, max_y)
 
 def find_aspects_in_frame(
     frame: Tuple[int, int, int, int], pixels

@@ -137,7 +137,7 @@ def setup_image(test_mode=True, skip_focus=False):
 def analyze_image_board(image: PIL.Image.Image, pixels):
     pixels = image.load()
 
-    board = find_frame(image, pixels, (150, 123, 123))
+    board = find_frame(image, (150, 123, 123))
 
     board_aspects = find_aspects_in_frame(board, pixels)
     log.debug("Aspects on board: %s", board_aspects)
@@ -149,8 +149,8 @@ def analyze_image_board(image: PIL.Image.Image, pixels):
 
 
 def analyze_image_inventory(image: PIL.Image.Image, pixels):
-    frame_aspects_left = find_frame(image, pixels, (100, 123, 123))
-    frame_aspects_right = find_frame(image, pixels, (200, 123, 123))
+    frame_aspects_left = find_frame(image, (100, 123, 123))
+    frame_aspects_right = find_frame(image, (200, 123, 123))
 
     start_time = time.time()
     inventory_aspects = find_aspects_in_frame(
@@ -282,6 +282,7 @@ def generate_hexgrid_from_image(image: Image, pixels) -> HexGrid:
     columns, valid_y_coords, smallest_y_diff = group_hexagons(
         empty_hexagons, board_aspects, image.height
     )
+
     grid = HexGrid()
     build_grid(columns, valid_y_coords, grid, smallest_y_diff)
     log.debug("Grid: %s", grid.grid)
