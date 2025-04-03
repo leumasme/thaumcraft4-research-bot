@@ -85,7 +85,3 @@ rgb_to_aspect_map = {
 
 def rgb_to_aspect(rgb_color):
     return rgb_to_aspect_map.get(rgb_color)
-    # for name, rgb in aspect_to_rgb_map.items():
-    #     if rgb == rgb_color:
-    #         return name
-    # return None

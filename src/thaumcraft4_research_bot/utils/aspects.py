@@ -98,12 +98,6 @@ for aspect, parents in aspect_parents.items():
         aspect_costs[aspect] = 1
         remaining_aspects.remove(aspect)
 
-# temp cause im low on aer
-aspect_costs["aqua"] = 2
-aspect_costs["aer"] = 2
-aspect_costs["ignis"] = 2
-aspect_costs["perditio"] = 2
-
 # Iteratively compute costs for aspects whose parents' costs are known
 while remaining_aspects:
     progress = False
@@ -226,17 +220,5 @@ def find_all_element_paths_many_2(start: str, ends_list: List[str], n_list: List
 
     return paths_many
 
-    
-
-
 def calculate_cost_of_aspect_path(path: List[str]) -> int:
     return sum(aspect_costs[aspect] for aspect in path)
-
-
-# Example usage:
-# starts = ["aer", "ignis"]
-# ends = ["terra", "aqua"]
-# n = 6
-# combinations = find_all_path_combinations_of_length_n(starts, ends, n)
-# for combo in combinations:
-#     print(combo)
