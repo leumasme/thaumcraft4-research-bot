@@ -125,47 +125,72 @@ while remaining_aspects:
 for aspect in graph.values():
     aspect.sort(key=lambda a: aspect_costs[a])
 
-def find_all_element_paths_many(start: str, ends_list: List[str], n_list: List[int]):
-    max_n = max(n_list)
+def find_cheapest_element_paths_many(start: str, ends_list: List[str], n_list: List[int]) -> List[List[List[str]]]:
+    max_n: int = max(n_list)
 
-    # Heuristic to speed this up dramatically
-    # With this, the function won't actually return *all* paths, but definitely the cheapest ones
-    min_costs = [999999999] * len(ends_list) # todo: proper default value
-    max_min_cost_index = 0
-
-    # Depth 3 for: Different ends, Alternative Paths, Nodes in Path
-    paths_many: List[List[List[str]]] = [[] for _ in ends_list]
-
-    def dfs(current_node: str, current_path: List[str], current_cost: int):
-        nonlocal max_min_cost_index
-        for i, (curr_end, curr_n) in enumerate(zip(ends_list, n_list)):
-            if current_node == curr_end and len(current_path) == curr_n:
-                paths_many[i].append(list(current_path))
+    # At each step, track minimum costs to reach an aspect and via which predecessors to reach it
+    # step -> {aspect: min_cost to reach that aspect}
+    min_costs: list[dict[str, int]] = [{} for _ in range(max_n)]
+    # step -> {aspect: [predecessors to reach that aspect]}
+    predecessors: list[dict[str, List[str]]] = [{} for _ in range(max_n)]
+    
+    min_costs[0][start] = aspect_costs[start]
+    
+    # Iterare forwards from the start aspect to calculate min_costs and predecessors
+    previous_step_aspects: List[str] = [start]
+    for step in range(max_n - 1):
+        for aspect in previous_step_aspects:
+            curr_cost = min_costs[step][aspect]
+            
+            for neighbor in graph[aspect]:
+                new_cost = curr_cost + aspect_costs[neighbor]
+                next_step = step + 1
                 
-                min_costs[i] = min(min_costs[i], current_cost)
-                if min_costs[max_min_cost_index] < min_costs[i]:
-                    max_min_cost_index = i
-
-        if len(current_path) == max_n:
-            return
+                if neighbor not in min_costs[next_step] or new_cost < min_costs[next_step][neighbor]:
+                    # Reached a new aspect or found a cheaper path to it
+                    # Clear and set the new cost and predecessors
+                    min_costs[next_step][neighbor] = new_cost
+                    predecessors[next_step][neighbor] = [aspect]
+                elif new_cost == min_costs[next_step][neighbor]:
+                    # Found another path with the same best cost
+                    predecessors[next_step][neighbor].append(aspect)
         
-        # If we're going to be worse than the worst best path, we can't find a best path anymore
-        min_extra_cost = n_list[max_min_cost_index] - len(current_path)
-        if min_extra_cost < 0:
-            min_extra_cost = 0
-        if current_cost + min_extra_cost > min_costs[max_min_cost_index]:
-            return
-
-        for neighbor in graph[current_node]:
-            current_path.append(neighbor)
-            dfs(neighbor, current_path, current_cost + aspect_costs[neighbor])
-            current_path.pop()
-
-    dfs(start, [start], 0)
-
-    for paths in paths_many:
-        paths.sort(key=calculate_cost_of_aspect_path)
-
+        # Update for next step
+        previous_step_aspects = list(min_costs[step+1].keys())
+    
+    # Iterate backwards to find the cheapest paths for each end aspect
+    # end_aspect_index -> step[][]
+    paths_many: List[List[List[str]]] = [[] for _ in ends_list]
+    for idx, (end, target_length) in enumerate(zip(ends_list, n_list)):
+        # Handle special cases
+        if target_length <= 0:
+            continue
+        if target_length == 1:
+            if end == start:
+                paths_many[idx].append([start])
+            continue
+        
+        # Skip if end not reachable in the target length
+        target_step_index = target_length - 1
+        if target_step_index >= max_n or end not in min_costs[target_step_index]:
+            continue
+        
+        # Build all minimum cost paths
+        def reconstruct_path(current: str, step_idx: int, current_path: List[str]) -> None:
+            if step_idx == 0:
+                # We've reached the start, complete and save the path
+                # Reverse to get start -> end
+                complete_path: List[str] = current_path[::-1]
+                paths_many[idx].append(complete_path)
+                return
+            
+            # Try all predecessors that achieve the minimum cost
+            for prev in predecessors[step_idx][current]:
+                reconstruct_path(prev, step_idx - 1, [prev] + current_path)
+        
+        # Start from the end node
+        reconstruct_path(end, target_step_index, [end])
+    
     return paths_many
 
 def calculate_cost_of_aspect_path(path: List[str]) -> int:
