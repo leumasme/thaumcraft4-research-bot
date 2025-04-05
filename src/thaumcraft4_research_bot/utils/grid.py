@@ -2,11 +2,14 @@ import base64
 import hashlib
 import json
 import time
+import itertools
 from typing import Dict, Tuple, Optional, List
 from copy import deepcopy
 
 from thaumcraft4_research_bot.utils.aspects import aspect_costs, calculate_cost_of_aspect_path, find_cheapest_element_paths_many 
 from thaumcraft4_research_bot.utils.log import log
+
+type Coordinate = Tuple[int, int]
 
 class HexGrid:
     # Grid coordinate -> Aspect, Screen Coordinate
@@ -170,18 +173,17 @@ class HexGrid:
         # Didn't find all ends
         return found_paths
 
-    # TODO: Use this?
     def pathfind_board_lengths_to_many(
-        self, start: Tuple[int, int], ends_arg: List[Tuple[int, int]], n_list: List[int]
-    ):
+        self, start: Coordinate, ends_arg: List[Coordinate], n_list: List[int]
+    ) -> List[List[List[Coordinate]]]:
         ends = set(ends_arg)
 
         max_n = max(n_list)
 
         # Depth 3 for: Different ends, Alternative Paths, Nodes in Path
-        paths_many: List[List[List[str]]] = [[] for _ in ends]
+        paths_many: List[List[List[Coordinate]]] = [[] for _ in ends]
 
-        def dfs(current_node: str, current_path: List[str]):
+        def dfs(current_node: Coordinate, current_path: List[Coordinate]):
             for i, (curr_end, curr_n) in enumerate(zip(ends, n_list)):
                 if current_node == curr_end and len(current_path) == curr_n:
                     paths_many[i].append(list(current_path))
@@ -201,61 +203,39 @@ class HexGrid:
 
         return paths_many
 
-    def pathfind_both_many(self, start: Tuple[int, int], ends: List[Tuple[int, int]], aspect_variations = 1):
+    def pathfind_both_lengths_to_many(self, start: Coordinate, ends: List[Coordinate], lengths: List[int], aspect_variations = 1, board_variations = 1) -> List[tuple[List[Coordinate], List[str]]]:
+        end_aspects = [self.get_value(end) for end in ends]
+        element_paths = find_cheapest_element_paths_many(self.get_value(start), end_aspects, lengths)
+
+        board_paths = self.pathfind_board_lengths_to_many(start, ends, lengths)
+
+        valid_path_combinations: list[tuple[List[Coordinate], List[str]]] = []
+        for i in range(len(lengths)):
+            combinations = itertools.product(element_paths[i][:aspect_variations], board_paths[i][:board_variations])
+            valid_path_combinations.extend(combinations)
+    
+        return valid_path_combinations
+
+    def pathfind_both_to_many(self, start: Tuple[int, int], ends: List[Tuple[int, int]]):
         shortest_path_list = self.pathfind_board_shortest_to_many(start, ends)
 
-        # would this be correctly aligned with each other?
-        # end_aspects = [self.get_value(end) for end in shortest_path_dict.keys()]
-        # lengths = [len(path) for path in shortest_path_dict.values()]
-
+        reachable_ends: List[Tuple[int, int]] = []
         shortest_paths_clean: List[List[Tuple[int, int]]] = []
-        end_aspects: List[str] = []
-        lengths: List[int] = []
         for i in range(len(ends)):
             if shortest_path_list[i] is None:
                 # No path found
                 continue
             shortest_paths_clean.append(shortest_path_list[i])
-            end_aspects.append(self.get_value(ends[i]))
-            lengths.append(len(shortest_path_list[i]))
+            reachable_ends.append(ends[i])
+        lengths = [len(path) for path in shortest_paths_clean]
 
-        # print("Searching element paths for", self.get_value(start), "to", end_aspects, "in steps", lengths)
+        paths = self.pathfind_both_lengths_to_many(start, reachable_ends, lengths)
 
-        start_time = time.time()
-        element_paths = find_cheapest_element_paths_many(self.get_value(start), end_aspects, lengths)
-        end_time = time.time()
-        aspect_pathfind_time_ms = (end_time - start_time) * 1000
-        log.info(f"Time taken for aspect DFS: {aspect_pathfind_time_ms:.2f}ms for max length {max(lengths)} to {len(end_aspects)} ends")
-        # print(f"From {start} to {[path[-1] for path in shortest_paths_clean]}")
+        if len(paths) < 10:
+            lengths_plus_one = [length + 1 for length in lengths]
+            paths.extend(self.pathfind_both_lengths_to_many(start, reachable_ends, lengths_plus_one))
 
-
-        # We need a list[tuple[List[str], List[Tuple[int, int]]]]
-
-        all_paths: list[tuple[List[str], List[Tuple[int, int]]]] = []
-        for i in range(len(end_aspects)):
-            if len(element_paths[i]) == 0:
-                # No element path found
-                continue                
-
-            # Consider only the cheapest element path
-            # element_path = element_paths[i][0]
-            # all_paths.append((element_path, shortest_paths_clean[i]))
-
-
-            first_element_path = element_paths[i][0]
-            best_element_paths = [first_element_path]
-
-            best_element_path_cost = calculate_cost_of_aspect_path(first_element_path)
-            for alternative_path in element_paths[i][1:]:
-                if calculate_cost_of_aspect_path(alternative_path) != best_element_path_cost:
-                    break
-                best_element_paths.append(alternative_path)
-
-            for element_path in best_element_paths[:aspect_variations]:
-                all_paths.append((element_path, shortest_paths_clean[i]))
-
-        # todo: extend, not just for not working but also for cost?
-        return all_paths
+        return paths
 
     def hash_board(self) -> str:
         # Hashes only the "Grid Coordinate -> Aspect" part of the grid, ignoring the screen coordinates

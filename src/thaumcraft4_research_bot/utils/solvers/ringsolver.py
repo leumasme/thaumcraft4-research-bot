@@ -157,7 +157,7 @@ class RingSolver:
         ]
 
         # TODO: Do something with the aspect variations number
-        new_paths = self.solving.pathfind_both_many(end, [start] + alternative_targets, 1)
+        new_paths = self.solving.pathfind_both_to_many(end, [start] + alternative_targets)
 
         if len(new_paths) == 0:
             # print("No paths found for ", end, [start] + alternative_targets)
