@@ -60,10 +60,13 @@ def normal_mode():
 
         solved = generate_solution_from_hexgrid(grid)
 
+        draw = ImageDraw.Draw(image)
         for path in solved.applied_paths:
             draw_board_path(image, solved, path)
+            draw_placing_hints(
+                image, draw, grid, inventory_aspects, path
+            )
 
-        draw = ImageDraw.Draw(image)
         draw_board_coords(solved, draw)
 
         image.save("debug_render.png")
