@@ -132,9 +132,9 @@ class RingSolver:
     def report_solution(self):
         assert self.index == len(self.nodes_to_connect)
         new_cost = self.solving.calculate_cost()
-        log.debug("Found a solution of cost", new_cost)
+        log.debug("Found a solution of cost %s", new_cost)
         if new_cost < self.best_solution_cost:
-            log.debug("Found a new best solution of cost", new_cost)
+            log.debug("Found a new best solution of cost %s", new_cost)
             self.best_solution = self.solving.copy()
             self.best_solution_cost = self.best_solution.calculate_cost()
 

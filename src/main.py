@@ -214,7 +214,7 @@ def group_hexagons(empty_hexagons, board_aspects, image_height):
         column = [coords[0]]
         for i in range(len(coords) - 1):
             curr_diff = coords[i + 1][1] - column[-1][1]
-            log.debug("Curr diff vs expected is", curr_diff, difference_y)
+            log.debug("Curr diff is %s vs expected %s", curr_diff, difference_y)
             while curr_diff > 1.5 * difference_y:
                 column.append((coords[i][0], coords[i][1] + difference_y, "Missing"))
                 curr_diff -= difference_y
@@ -222,7 +222,7 @@ def group_hexagons(empty_hexagons, board_aspects, image_height):
         log.debug("Generated board column: %s", column)
         columns.append(column)
 
-    log.debug("Smallest y diff between parsed board hexagons is", smallest_y_diff)
+    log.debug("Smallest y diff between parsed board hexagons is %s", smallest_y_diff)
     valid_y_coords = []
 
     for col in columns:
