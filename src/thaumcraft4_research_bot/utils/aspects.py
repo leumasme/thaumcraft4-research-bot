@@ -179,9 +179,7 @@ def find_cheapest_element_paths_many(start: str, ends_list: List[str], n_list: L
         def reconstruct_path(current: str, step_idx: int, current_path: List[str]) -> None:
             if step_idx == 0:
                 # We've reached the start, complete and save the path
-                # Reverse to get start -> end
-                complete_path: List[str] = current_path[::-1]
-                paths_many[idx].append(complete_path)
+                paths_many[idx].append(current_path)
                 return
             
             # Try all predecessors that achieve the minimum cost
