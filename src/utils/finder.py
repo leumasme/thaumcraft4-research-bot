@@ -16,11 +16,20 @@ def has_consecutive_pixels(image, pixels, x, y, dx, dy):
             return False
     return True
 
+def find_frame(image, target_color):
+    try:
+        return find_frame_fast(image, target_color)
+    except Exception as e:
+        log.error("Fast frame detection failed, falling back to slow method...")
+        log.exception(e)
+        return find_frame_slow(image, target_color)
 
-def find_frame(image, pixels, target_color):
+def find_frame_slow(image, target_color):
+    # Slower method, but may be more accurate in some cases...
     # Initialize bounding box coordinates
     left_x, top_y = 0, 0
     right_x, bottom_y = image.width, image.height
+    pixels = image.load()
 
     # Iterate over all pixels to find the bounding box of the target color frame
     # Uses a Shrinking approach to find the INNER bounding box of the frame if its thick
@@ -44,7 +53,7 @@ def find_frame(image, pixels, target_color):
                     right_x, bottom_y = x, y
     return (left_x, top_y, right_x, bottom_y)
 
-def find_frame(image, target_color):
+def find_frame_fast(image, target_color):
     # Convert PIL image to numpy array
     img_array = np.array(image)
     
