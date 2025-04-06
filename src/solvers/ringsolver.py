@@ -22,7 +22,7 @@ class RingSolver:
     path_variation_indices: List[int]
     next_path_index: int  # Path write head
 
-    initial_nodes: List[Tuple[int, int]] = []
+    initial_nodes: List[Tuple[int, int]]
 
     def __init__(self, solving: SolvingHexGrid, start_aspects: List[Tuple[int, int]]):
         self.solving = solving
