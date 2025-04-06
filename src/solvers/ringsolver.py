@@ -22,6 +22,8 @@ class RingSolver:
     path_variation_indices: List[int]
     next_path_index: int  # Path write head
 
+    iteration_count: int
+
     initial_nodes: List[Tuple[int, int]]
 
     def __init__(self, solving: SolvingHexGrid, start_aspects: List[Tuple[int, int]]):
@@ -31,6 +33,7 @@ class RingSolver:
         self.all_paths = []
         self.path_variation_indices = []
         self.next_path_index = 0
+        self.iteration_count = 0
 
     def alternate_previous_path(self) -> bool:
         """
@@ -81,9 +84,9 @@ class RingSolver:
 
     def report_solution(self):
         new_cost = self.solving.calculate_cost()
-        log.debug("Found a solution of cost %s", new_cost)
+        log.debug("Found a solution of cost %s at iteration %s", new_cost, self.iteration_count)
         if new_cost < self.best_solution_cost:
-            log.debug("Found a new best solution of cost %s", new_cost)
+            log.debug("Found a new best solution of cost %s at iteration %s", new_cost, self.iteration_count)
             self.best_solution = self.solving.copy()
             self.best_solution_cost = self.best_solution.calculate_cost()
 
@@ -91,6 +94,7 @@ class RingSolver:
         """
         :returns: False if no next iteration is possible (search is done)
         """
+        self.iteration_count += 1
         target = self.initial_nodes[self.next_path_index]
         unconnected_nodes = [
             coord
