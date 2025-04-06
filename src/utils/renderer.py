@@ -58,7 +58,7 @@ def draw_placing_hints(
         invImgX, invImgY = get_center_of_box(inventory_location)
         boardImgX, boardImgY = grid.get_pixel_location(board_coord)
 
-        color = aspect_colors[aspect]
+        color = "#"+aspect_colors[aspect]
         draw.line((invImgX, invImgY, boardImgX, boardImgY), fill=color, width=2)
 
         icon = get_aspect_icon_from_name(aspect)
