@@ -14,9 +14,11 @@ type Coordinate = Tuple[int, int]
 class HexGrid:
     # Grid coordinate -> Aspect, Screen Coordinate
     grid: Dict[Tuple[int, int], Tuple[str, Tuple[int, int]]]
+    connected_positions_cache: List[set[tuple[int, int]]]
 
     def __init__(self) -> None:
         self.grid = {}
+        self.connected_positions_cache = list()
 
     def set_hex(
         self, coord: Tuple[int, int], value: str, pixelCoord: Tuple[int, int]
@@ -221,7 +223,7 @@ class HexGrid:
     
         return valid_path_combinations
 
-    def pathfind_both_to_many(self, start: Tuple[int, int], ends: List[Tuple[int, int]]):
+    def pathfind_both_to_many(self, start: Tuple[int, int], ends: List[Tuple[int, int]]) -> List[tuple[List[Coordinate], List[str]]]:
         assert len(ends) > 0, "Must have at least one end"
         shortest_path_list = self.pathfind_board_shortest_to_many(start, ends)
 
@@ -248,16 +250,16 @@ class HexGrid:
         return paths
     
     def are_positions_connected(self, start: Coordinate, end: Coordinate) -> bool:
-        # TODO: Maybe cache the sets of connected coordinates? But needs to be invalidated on path changes
-        # Check if the start and end coordinates are connected by a path of "Free" spaces
+        # Check if the start and end coordinates are connected by a path of aspects which may connect to each other
+        for connected_set in self.connected_positions_cache:
+            if start in connected_set or end in connected_set:
+                return start in connected_set and end in connected_set
+
         visited = set()
         queue = [start]
 
         while queue:
             current = queue.pop(0)
-            if current == end:
-                return True
-
             visited.add(current)
 
             for neighbor in self.get_neighbors(current):
@@ -265,7 +267,12 @@ class HexGrid:
                 if neighbor not in visited and self.get_value(neighbor) in aspect_graph[self.get_value(current)]:
                     queue.append(neighbor)
 
-        return False
+        self.connected_positions_cache.append(visited)
+        return end in visited
+
+    def invalidate_cache(self) -> None:
+        # Invalidate the cache of connected positions, for use when the grid changes (via SolvingHexGrid)
+        self.connected_positions_cache = []
 
     def hash_board(self) -> str:
         # Hashes only the "Grid Coordinate -> Aspect" part of the grid, ignoring the screen coordinates
@@ -293,6 +300,7 @@ class SolvingHexGrid(HexGrid):
 
     def apply_path(self, path: List[Tuple[int, int]], element_path: List[str]) -> None:
         self.applied_paths.append(list(zip(element_path, path)))
+        self.invalidate_cache()
 
     def get_value(self, coord: Tuple[int, int]) -> Optional[str]:
         # Check applied paths first

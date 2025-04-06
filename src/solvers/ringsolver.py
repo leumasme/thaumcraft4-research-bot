@@ -56,7 +56,7 @@ class RingSolver:
         self.solving.applied_paths[self.next_path_index - 1] = list(
             zip(current_elem_path, current_board_path)
         )
-
+        self.solving.invalidate_cache()
         return True
 
     def backtrack_hard(self):
@@ -115,7 +115,7 @@ class RingSolver:
 
         min_extra_length = min([len(path[0]) for path in new_paths]) - 2
         if  self.solving.calculate_cost() + min_extra_length * 1.5 >= self.best_solution_cost:
-            log.debug("Skipping pathfinding for %s, cost too high", target)
+            log.debug("Skipping pathfinding for %s, cost too high, at depth %s of %s", target, self.next_path_index, len(self.initial_nodes))
             return self.alternate_previous_path()
 
         new_paths.sort(
@@ -129,6 +129,9 @@ class RingSolver:
         self.solving.apply_path(initial_board_path, initial_elem_path)
         self.path_variation_indices.append(0)
         self.next_path_index += 1
+
+        # Invalidate cache of connected positions, as the grid has changed
+        self.solving.invalidate_cache()
 
         return True
 
