@@ -312,14 +312,16 @@ def generate_solution_from_hexgrid(grid: HexGrid) -> SolvingHexGrid:
 
     # Check for duplicate coordinates in solution paths
     seen_coords = set()
+    seen_coords_to_aspect = {}
     duplicate_coords = []
     for path_idx, path in enumerate(solved.applied_paths):
         for node_idx, (aspect, coord) in enumerate(path):
-            if coord in seen_coords:
+            if coord in seen_coords and seen_coords_to_aspect[coord] != aspect:
                 duplicate_coords.append((coord, aspect))
-                log.error(f"Duplicate coordinate {coord} found in solution! Path {path_idx}, node {node_idx}, aspect {aspect}")
-            else:
-                seen_coords.add(coord)
+                log.error(f"Duplicate coordinate {coord} found in solution! Path {path_idx}, node {node_idx}, aspect {aspect} was {seen_coords_to_aspect[coord]}")
+            seen_coords.add(coord)
+            seen_coords_to_aspect[coord] = aspect
+
                 
     # If the solution is invalid, dont throw so a debug image is still generated
     if duplicate_coords:
