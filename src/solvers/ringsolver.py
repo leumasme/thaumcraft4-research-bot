@@ -113,6 +113,11 @@ class RingSolver:
             # print("No paths found for ", end, [start] + alternative_targets)
             return self.alternate_previous_path()
 
+        min_extra_length = min([len(path[0]) for path in new_paths]) - 2
+        if  self.solving.calculate_cost() + min_extra_length * 1.5 >= self.best_solution_cost:
+            log.debug("Skipping pathfinding for %s, cost too high", target)
+            return self.alternate_previous_path()
+
         new_paths.sort(
             key=lambda x: calculate_cost_of_aspect_path(x[0])
         )  # TODO: second grade sort by something else?
