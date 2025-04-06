@@ -1,7 +1,6 @@
 import base64
 import hashlib
 import json
-import time
 import itertools
 from typing import Dict, Tuple, Optional, List
 from copy import deepcopy
@@ -260,16 +259,6 @@ class SolvingHexGrid(HexGrid):
 
     def apply_path(self, path: List[Tuple[int, int]], element_path: List[str]) -> None:
         self.applied_paths.append(list(zip(element_path, path)))
-
-    def pathfind_both_and_update_grid(
-        self, start: Tuple[int, int], end: Tuple[int, int]
-    ):
-        board_paths, element_paths = self.pathfind_both(start, end)
-        if len(board_paths) == 0:
-            raise Exception("No paths found", start, end)
-        # Element paths are already sorted so cheapest path is first
-        self.apply_path(board_paths[0], element_paths[0])
-        return board_paths, element_paths[0]
 
     def get_value(self, coord: Tuple[int, int]) -> Optional[str]:
         # Check applied paths first

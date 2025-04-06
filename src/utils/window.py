@@ -7,41 +7,8 @@ from typing import Tuple
 
 from ..utils.log import log
 
-# Import necessary Windows API functions and types
+# Import Windows API
 user32 = ctypes.WinDLL("user32", use_last_error=True)
-
-# Define constants
-GWL_STYLE = -16
-GWL_EXSTYLE = -20
-
-
-def resize_window_to_content_size(
-    window: gw.Win32Window, content_width: int, content_height: int
-) -> None:
-    hwnd = window._hWnd
-    rect = wintypes.RECT()
-
-    # Get the current window rect to determine style
-    if not user32.GetWindowRect(hwnd, ctypes.byref(rect)):
-        raise ctypes.WinError(ctypes.get_last_error())
-
-    style = user32.GetWindowLongW(hwnd, GWL_STYLE)
-    ex_style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
-
-    # Desired content area size
-    rect.right = rect.left + content_width
-    rect.bottom = rect.top + content_height
-
-    # Adjust the rectangle to include the window frame
-    user32.AdjustWindowRectEx(ctypes.byref(rect), style, False, ex_style)
-
-    # Calculate the total window width and height
-    new_width = rect.right - rect.left
-    new_height = rect.bottom - rect.top
-
-    # Resize the window
-    user32.SetWindowPos(hwnd, None, rect.left, rect.top, new_width, new_height, 0)
-
 
 def screenshot_window(window: gw.Win32Window) -> Tuple[Image, Tuple[int, int]]:
     hwnd = window._hWnd
