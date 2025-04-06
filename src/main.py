@@ -38,11 +38,6 @@ def main():
     else:
         normal_mode()
 
-
-if __name__ == "__main__":
-    main()
-
-
 def normal_mode():
     inventory_aspects: list[OnscreenAspect] = None
     while True:
@@ -367,3 +362,6 @@ def place_aspect_at(
     sleep(0.03)
     gui.mouseUp()
     sleep(0.03)
+
+if __name__ == "__main__":
+    main()
