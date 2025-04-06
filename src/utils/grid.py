@@ -173,20 +173,14 @@ class HexGrid:
         return found_paths
 
     def pathfind_board_lengths_to_many(
-        self, start: Coordinate, ends_arg: List[Coordinate], n_list: List[int]
-    ) -> List[List[List[Coordinate]]]:
-        ends = set(ends_arg)
-
+        self, start: Coordinate, ends: List[Coordinate], n_list: List[int]
+    ):
         max_n = max(n_list)
 
         # Depth 3 for: Different ends, Alternative Paths, Nodes in Path
         paths_many: List[List[List[Coordinate]]] = [[] for _ in ends]
 
         def dfs(current_node: Coordinate, current_path: List[Coordinate]):
-            for i, (curr_end, curr_n) in enumerate(zip(ends, n_list)):
-                if current_node == curr_end and len(current_path) == curr_n:
-                    paths_many[i].append(list(current_path))
-
             if len(current_path) == max_n:
                 return
 
@@ -194,8 +188,17 @@ class HexGrid:
                 if neighbor in current_path:
                     continue
 
+
                 current_path.append(neighbor)
-                dfs(neighbor, current_path)
+                for i, (curr_end, curr_n) in enumerate(zip(ends, n_list)):
+                    if neighbor == curr_end and len(current_path) == curr_n:
+                        paths_many[i].append(list(current_path))
+                
+                # Don't cross over non-free board spaces.
+                # Stepping on the occupied end space is allowed, but that is already checked above.
+                neighbor_value = self.get_value(neighbor)
+                if neighbor_value == "Free":
+                    dfs(neighbor, current_path)
                 current_path.pop()
 
         dfs(start, [start])
