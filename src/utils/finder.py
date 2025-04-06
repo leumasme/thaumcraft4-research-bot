@@ -1,8 +1,8 @@
 from typing import Set, Tuple, List
 import numpy as np
 
-from thaumcraft4_research_bot.utils.colors import rgb_to_aspect
-from thaumcraft4_research_bot.utils.log import log
+from ..utils.colors import rgb_to_aspect
+from ..utils.log import log
 
 # Function to check if there are consecutive pixels of the same color in a direction
 def has_consecutive_pixels(image, pixels, x, y, dx, dy):

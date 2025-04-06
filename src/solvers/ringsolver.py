@@ -1,8 +1,8 @@
 from typing import Tuple, List, Dict
 
-from thaumcraft4_research_bot.utils.grid import HexGrid, SolvingHexGrid
-from thaumcraft4_research_bot.utils.aspects import calculate_cost_of_aspect_path
-from thaumcraft4_research_bot.utils.log import log
+from ..utils.grid import HexGrid, SolvingHexGrid
+from ..utils.aspects import calculate_cost_of_aspect_path
+from ..utils.log import log
 
 def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid:
     solving = SolvingHexGrid.from_hexgrid(grid)

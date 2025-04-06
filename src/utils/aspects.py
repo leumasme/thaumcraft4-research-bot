@@ -1,6 +1,6 @@
 from typing import List, Tuple
 
-from thaumcraft4_research_bot.utils.log import log
+from ..utils.log import log
 
 aspect_parents = {
     "aer": (None, None),

@@ -2,10 +2,10 @@ from PIL import ImageDraw
 import PIL.Image
 from typing import Tuple, List
 
-from thaumcraft4_research_bot.utils.grid import HexGrid
-from thaumcraft4_research_bot.utils.finder import get_center_of_box
-from thaumcraft4_research_bot.utils.colors import aspect_colors
-from thaumcraft4_research_bot.utils.log import log
+from ..utils.grid import HexGrid
+from ..utils.finder import get_center_of_box
+from ..utils.colors import aspect_colors
+from ..utils.log import log
 
 def get_aspect_icon_from_name(name):
     try:

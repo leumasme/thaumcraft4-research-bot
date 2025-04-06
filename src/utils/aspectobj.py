@@ -1,6 +1,7 @@
 from typing import Dict, List, Tuple, Optional
-from thaumcraft4_research_bot.utils.colors import aspect_colors, hex_to_rgb
 import random
+
+from ..utils.colors import aspect_colors, hex_to_rgb
 
 class Aspect:
     def __init__(self, name: str):

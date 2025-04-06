@@ -6,8 +6,8 @@ import itertools
 from typing import Dict, Tuple, Optional, List
 from copy import deepcopy
 
-from thaumcraft4_research_bot.utils.aspects import aspect_costs, calculate_cost_of_aspect_path, find_cheapest_element_paths_many 
-from thaumcraft4_research_bot.utils.log import log
+from ..utils.aspects import aspect_costs, calculate_cost_of_aspect_path, find_cheapest_element_paths_many 
+from ..utils.log import log
 
 type Coordinate = Tuple[int, int]
 

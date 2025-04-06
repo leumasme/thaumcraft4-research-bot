@@ -5,7 +5,7 @@ import pyautogui as gui
 from PIL.Image import Image
 from typing import Tuple
 
-from thaumcraft4_research_bot.utils.log import log
+from ..utils.log import log
 
 # Import necessary Windows API functions and types
 user32 = ctypes.WinDLL("user32", use_last_error=True)

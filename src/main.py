@@ -10,13 +10,15 @@ import sys
 import traceback
 
 # Local libs
-from thaumcraft4_research_bot.utils.window import *
-from thaumcraft4_research_bot.utils.finder import *
-from thaumcraft4_research_bot.utils.grid import HexGrid, SolvingHexGrid
-from thaumcraft4_research_bot.utils.aspects import aspect_parents
-from thaumcraft4_research_bot.utils.solvers.ringsolver import solve as ringsolver_solve
-from thaumcraft4_research_bot.utils.renderer import *
-from thaumcraft4_research_bot.utils.log import log
+from .utils.window import *
+from .utils.finder import *
+from .utils.grid import HexGrid, SolvingHexGrid
+from .utils.aspects import aspect_parents
+from .solvers.ringsolver import solve as ringsolver_solve
+from .utils.renderer import *
+from .utils.log import log
+
+from . import *
 
 # Disable 0.1 seconds delay between each pyautogui call
 gui.PAUSE = 0

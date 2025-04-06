@@ -18,10 +18,12 @@ dev-dependencies = [
 [tool.isort]
 profile = "black"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
 [project.scripts]
-main = "thaumcraft4_research_bot.main:main"
-test_elements = "thaumcraft4_research_bot.main:test_element_list"
-test_aspect = "thaumcraft4_research_bot.main:test_aspect"
+main = "src.main:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
