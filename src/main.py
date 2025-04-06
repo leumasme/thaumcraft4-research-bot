@@ -297,8 +297,8 @@ def generate_hexgrid_from_image(image: Image, pixels) -> HexGrid:
 
 def generate_solution_from_hexgrid(grid: HexGrid) -> SolvingHexGrid:
     start_aspects: list[Tuple[int, int]] = []
-    for (grid_x, grid_y), (name, _) in grid.grid.items():
-        if name != "Free" and name != "Missing":
+    for (grid_x, grid_y), aspect in grid:
+        if aspect != "Free" and aspect != "Missing":
             start_aspects.append((grid_x, grid_y))
 
     log.debug("Starting solve computation")

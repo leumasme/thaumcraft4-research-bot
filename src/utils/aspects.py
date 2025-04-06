@@ -77,16 +77,16 @@ aspect_parents = {
 # Build the graph as an adjacency list
 from collections import defaultdict
 
-graph: defaultdict[str, List[str]] = defaultdict(list)
+aspect_graph: defaultdict[str, List[str]] = defaultdict(list)
 
 # Add edges between aspects and their parents
 for aspect, parents in aspect_parents.items():
     for parent in parents:
         if parent is not None:
-            if aspect not in graph[parent]:
-                graph[parent].append(aspect)
-            if parent not in graph[aspect]:
-                graph[aspect].append(parent)
+            if aspect not in aspect_graph[parent]:
+                aspect_graph[parent].append(aspect)
+            if parent not in aspect_graph[aspect]:
+                aspect_graph[aspect].append(parent)
 
 # Compute aspect costs without recursion by caching the results in a dictionary
 aspect_costs = {}
@@ -122,10 +122,13 @@ while remaining_aspects:
 
 # Make sure the cheaper aspects are first in the neighbor list
 # This is very cheap and makes the aspect path dfs heuristic work better
-for aspect in graph.values():
+for aspect in aspect_graph.values():
     aspect.sort(key=lambda a: aspect_costs[a])
 
 def find_cheapest_element_paths_many(start: str, ends_list: List[str], n_list: List[int]) -> List[List[List[str]]]:
+    assert start != "Free" and start != "Missing", f"{start} is not a valid start aspect"
+    assert "Free" not in ends_list and "Missing" not in ends_list, f"{end} is not a valid end aspect"
+
     max_n: int = max(n_list)
 
     # At each step, track minimum costs to reach an aspect and via which predecessors to reach it
@@ -142,7 +145,7 @@ def find_cheapest_element_paths_many(start: str, ends_list: List[str], n_list: L
         for aspect in previous_step_aspects:
             curr_cost = min_costs[step][aspect]
             
-            for neighbor in graph[aspect]:
+            for neighbor in aspect_graph[aspect]:
                 new_cost = curr_cost + aspect_costs[neighbor]
                 next_step = step + 1
                 

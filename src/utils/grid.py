@@ -5,8 +5,9 @@ import itertools
 from typing import Dict, Tuple, Optional, List
 from copy import deepcopy
 
-from ..utils.aspects import aspect_costs, calculate_cost_of_aspect_path, find_cheapest_element_paths_many 
+from ..utils.aspects import aspect_costs, find_cheapest_element_paths_many 
 from ..utils.log import log
+from ..utils.aspects import aspect_graph
 
 type Coordinate = Tuple[int, int]
 
@@ -206,6 +207,8 @@ class HexGrid:
         return paths_many
 
     def pathfind_both_lengths_to_many(self, start: Coordinate, ends: List[Coordinate], lengths: List[int], aspect_variations = 1, board_variations = 1) -> List[tuple[List[Coordinate], List[str]]]:
+        assert len(lengths) == len(ends), "Lengths and ends must be the same length"
+        assert len(ends) > 0, "Must have at least one end"
         end_aspects = [self.get_value(end) for end in ends]
         element_paths = find_cheapest_element_paths_many(self.get_value(start), end_aspects, lengths)
 
@@ -219,6 +222,7 @@ class HexGrid:
         return valid_path_combinations
 
     def pathfind_both_to_many(self, start: Tuple[int, int], ends: List[Tuple[int, int]]):
+        assert len(ends) > 0, "Must have at least one end"
         shortest_path_list = self.pathfind_board_shortest_to_many(start, ends)
 
         reachable_ends: List[Tuple[int, int]] = []
@@ -231,6 +235,10 @@ class HexGrid:
             reachable_ends.append(ends[i])
         lengths = [len(path) for path in shortest_paths_clean]
 
+        if len(reachable_ends) == 0:
+            # None of the ends is even reachable on the board at all
+            return []
+
         paths = self.pathfind_both_lengths_to_many(start, reachable_ends, lengths)
 
         if len(paths) < 10:
@@ -238,6 +246,26 @@ class HexGrid:
             paths.extend(self.pathfind_both_lengths_to_many(start, reachable_ends, lengths_plus_one))
 
         return paths
+    
+    def are_positions_connected(self, start: Coordinate, end: Coordinate) -> bool:
+        # TODO: Maybe cache the sets of connected coordinates? But needs to be invalidated on path changes
+        # Check if the start and end coordinates are connected by a path of "Free" spaces
+        visited = set()
+        queue = [start]
+
+        while queue:
+            current = queue.pop(0)
+            if current == end:
+                return True
+
+            visited.add(current)
+
+            for neighbor in self.get_neighbors(current):
+                # Is the current aspect connectable to the neighbor aspect?
+                if neighbor not in visited and self.get_value(neighbor) in aspect_graph[self.get_value(current)]:
+                    queue.append(neighbor)
+
+        return False
 
     def hash_board(self) -> str:
         # Hashes only the "Grid Coordinate -> Aspect" part of the grid, ignoring the screen coordinates
@@ -251,6 +279,9 @@ class HexGrid:
         base64_str = base64_str.rstrip("=")
 
         return base64_str
+    
+    def __iter__(self):
+        return HexGridIterator(self)
             
 
 class SolvingHexGrid(HexGrid):
@@ -304,3 +335,22 @@ class SolvingHexGrid(HexGrid):
         
         new_instance.applied_paths = deepcopy(self.applied_paths)
         return new_instance
+
+class HexGridIterator:
+    def __init__(self, hexgrid: HexGrid):
+        self.hexgrid = hexgrid
+        self.coordinates = list(hexgrid.grid.keys())
+        self.index = 0
+    
+    def __iter__(self):
+        return self
+    
+    def __next__(self):
+        if self.index >= len(self.coordinates):
+            raise StopIteration
+        
+        coord = self.coordinates[self.index]
+        # Use get_value instead of the .grid values so this also works with SolvingHexGrid
+        value = self.hexgrid.get_value(coord)
+        self.index += 1
+        return (coord, value)
