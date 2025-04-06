@@ -225,7 +225,7 @@ class HexGrid:
         element_paths = find_cheapest_element_paths_many(self.get_value(start), end_aspects, lengths)
         end_time = time.time()
         aspect_pathfind_time_ms = (end_time - start_time) * 1000
-        log.info(f"Time taken for aspect DFS: {aspect_pathfind_time_ms:.2f}ms for max length {max(lengths)} to {len(end_aspects)} ends")
+        # log.info(f"Time taken for aspect DFS: {aspect_pathfind_time_ms:.2f}ms for max length {max(lengths)} to {len(end_aspects)} ends")
         # print(f"From {start} to {[path[-1] for path in shortest_paths_clean]}")
 
 

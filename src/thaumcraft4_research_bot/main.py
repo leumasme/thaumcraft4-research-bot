@@ -308,7 +308,7 @@ def generate_solution_from_hexgrid(grid: HexGrid) -> SolvingHexGrid:
 
 def save_input_image(image: Image, grid: HexGrid):
     board_hash = grid.hash_board()[:6]
-    log.info("Saving sample image, Board hash is", board_hash)
+    log.info("Saving sample image, Board hash is %s", board_hash)
     img_path = Path("./test_inputs/board_" + board_hash + ".png")
     if not img_path.exists():
         img_path.parent.mkdir(exist_ok=True)

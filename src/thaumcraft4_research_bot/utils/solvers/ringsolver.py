@@ -15,19 +15,26 @@ class RingSolver:
     start_aspects: List[Tuple[int, int]]
 
     best_solution: SolvingHexGrid
-    best_solution_cost = 999999999 # TODO: proper placeholder value
+    best_solution_cost: int
 
     # (type[], (x, y)[])[][]
     # different source-destination ; different alternate paths ; different steps of path
-    all_paths: List[List[Tuple[List[str], List[Tuple[int, int]]]]] = []
-    path_indices: List[int] = []
-    index = 0  # Path write head
+    all_paths: List[List[Tuple[List[str], List[Tuple[int, int]]]]]
+    path_indices: List[int]
+    index: int  # Path write head
+
+    iteration_count: int
 
     nodes_to_connect: List[Tuple[Tuple[int,int], Tuple[int, int]]]
 
     def __init__(self, solving: SolvingHexGrid, start_aspects: List[Tuple[int, int]]):
         self.solving = solving
         self.start_aspects = start_aspects
+        self.index = 0
+        self.iteration_count = 0
+        self.all_paths = []
+        self.best_solution_cost = 999999999
+        self.path_indices = []
 
     def alternate_previous_path(self) -> bool:
         """ 
@@ -66,7 +73,7 @@ class RingSolver:
 
         if self.index == 0:
             # print("Done! Lowest Solution cost is", self.best_solution_cost, "at", self.total_runs)
-            log.info("Done! Lowest Solution cost is %s", self.best_solution_cost)
+            log.info("Done! Lowest Solution cost is %s at %s iterations", self.best_solution_cost, self.iteration_count)
             return False
 
         self.path_indices.pop()
@@ -132,9 +139,9 @@ class RingSolver:
     def report_solution(self):
         assert self.index == len(self.nodes_to_connect)
         new_cost = self.solving.calculate_cost()
-        log.debug("Found a solution of cost", new_cost)
+        log.debug("Found a solution of cost %s at %s iterations", new_cost, self.iteration_count)
         if new_cost < self.best_solution_cost:
-            log.debug("Found a new best solution of cost", new_cost)
+            log.debug(f"Found a new best solution of cost %s at %s iterations", new_cost, self.iteration_count)
             self.best_solution = self.solving.copy()
             self.best_solution_cost = self.best_solution.calculate_cost()
 
@@ -142,6 +149,7 @@ class RingSolver:
         """
         :returns: False if no next iteration is possible (search is done)
         """
+        self.iteration_count += 1
         if self.index == len(self.nodes_to_connect):
             # Found a solution
             self.report_solution()
