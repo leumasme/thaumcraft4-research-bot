@@ -8,7 +8,9 @@ def solve(grid: HexGrid, start_aspects: List[Tuple[int, int]]) -> SolvingHexGrid
     solving = SolvingHexGrid.from_hexgrid(grid)
 
     ring_solver = RingSolver(solving, start_aspects)
-    return ring_solver.solve()
+    solution = ring_solver.solve()
+    print("Savings=", ring_solver.solving.savings, "No savings=", ring_solver.solving.no_savings)
+    return solution
 
 class RingSolver:
     solving: SolvingHexGrid

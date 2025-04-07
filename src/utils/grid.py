@@ -221,13 +221,27 @@ class HexGrid:
 
         return paths_many
 
+    savings = 0
+    no_savings = 0
     def pathfind_both_lengths_to_many(self, start: Coordinate, ends: List[Coordinate], lengths: List[int], aspect_variations = 1, board_variations = 1) -> List[tuple[List[Coordinate], List[str]]]:
         assert len(lengths) == len(ends), "Lengths and ends must be the same length"
         assert len(ends) > 0, "Must have at least one end"
         end_aspects = [self.get_value(end) for end in ends]
         element_paths = find_cheapest_element_paths_many(self.get_value(start), end_aspects, lengths)
 
-        board_paths = self.pathfind_board_lengths_to_many(start, ends, lengths)
+        for element_paths_to_end in element_paths:
+            if len(element_paths_to_end) == 0:
+                self.savings += 1
+            else:
+                self.no_savings += 1
+
+        trimmed_lengths = [
+            length if len(element_paths_to_end) > 0 else 0
+            for element_paths_to_end, length in zip(element_paths, lengths)
+        ]
+        # trimmed_lengths = lengths
+
+        board_paths = self.pathfind_board_lengths_to_many(start, ends, trimmed_lengths)
 
         valid_path_combinations: list[tuple[List[Coordinate], List[str]]] = []
         for i in range(len(lengths)):
