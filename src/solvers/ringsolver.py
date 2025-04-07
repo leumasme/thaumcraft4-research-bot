@@ -95,7 +95,8 @@ class RingSolver:
         :returns: False if no next iteration is possible (search is done)
         """
         self.iteration_count += 1
-        target = self.initial_nodes[self.next_path_index]
+        # target = self.initial_nodes[self.next_path_index]
+        target = sorted(self.initial_nodes, key=lambda x: len(self.solving.get_unconnected_filled_positions(x)))[-1]
         unconnected_nodes = self.solving.get_unconnected_filled_positions(target)
 
         if len(unconnected_nodes) == 0:
