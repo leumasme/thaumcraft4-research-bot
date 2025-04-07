@@ -96,13 +96,7 @@ class RingSolver:
         """
         self.iteration_count += 1
         target = self.initial_nodes[self.next_path_index]
-        unconnected_nodes = [
-            coord
-            for (coord, aspect) in self.solving
-            if not self.solving.are_positions_connected(target, coord)
-            and aspect != "Free"
-            and aspect != "Missing"
-        ]
+        unconnected_nodes = self.solving.get_unconnected_filled_positions(target)
 
         if len(unconnected_nodes) == 0:
             # Found a solution

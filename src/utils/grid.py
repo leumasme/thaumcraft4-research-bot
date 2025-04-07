@@ -259,13 +259,8 @@ class HexGrid:
 
         return paths
     
-    def are_positions_connected(self, start: Coordinate, end: Coordinate) -> bool:
-        # Check if the start and end coordinates are connected by a path of aspects which may connect to each other
-        for connected_set in self.connected_positions_cache:
-            if start in connected_set or end in connected_set:
-                return start in connected_set and end in connected_set
-
-        visited = set()
+    def _populate_connected_positions_cache(self, start: Coordinate) -> set[Coordinate]:
+        visited: set[Coordinate] = set()
         queue = [start]
 
         while queue:
@@ -278,7 +273,34 @@ class HexGrid:
                     queue.append(neighbor)
 
         self.connected_positions_cache.append(visited)
-        return end in visited
+        return visited
+    
+    def get_connected_positions(self, start: Coordinate) -> set[Coordinate]:
+        # Check if the start coordinate is already in the cache
+        for connected_set in self.connected_positions_cache:
+            if start in connected_set:
+                return connected_set
+
+        # If not, populate the cache and return the connected positions
+        return self._populate_connected_positions_cache(start)
+
+    def are_positions_connected(self, start: Coordinate, end: Coordinate) -> bool:
+        # Check if the start and end coordinates are connected by a path of aspects which may connect to each other
+        for connected_set in self.connected_positions_cache:
+            if start in connected_set or end in connected_set:
+                return start in connected_set and end in connected_set
+
+        reachable = self._populate_connected_positions_cache(start)
+        return end in reachable
+    
+    def get_unconnected_filled_positions(self, target: Coordinate) -> List[Coordinate]:
+        return [
+            coord
+            for (coord, aspect) in self
+            if not self.are_positions_connected(target, coord)
+            and aspect != "Free"
+            and aspect != "Missing"
+        ]
 
     def invalidate_cache(self) -> None:
         # Invalidate the cache of connected positions, for use when the grid changes (via SolvingHexGrid)
