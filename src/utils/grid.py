@@ -34,6 +34,13 @@ class HexGrid:
     def get_pixel_location(self, coord: Tuple[int, int]) -> Tuple[int, int]:
         return self.grid[coord][1]
 
+    def calculate_distance(start: Coordinate, end: Coordinate) -> int:
+        # Very good resource: https://www.redblobgames.com/grids/hexagons/#distances
+        # We use "Doubled coordinates" (doubleheight) with y being the height
+        dx = abs(end[0] - start[0])
+        dy = abs(end[1] - start[1])
+        return dx + max(0, (dy - dx) // 2)
+
     def get_neighbors(self, coord: Tuple[int, int]) -> List[Tuple[int, int]]:
         q, r = coord
         # todo: maybe sort neighbors by distance to center to promote going towards center?
@@ -184,7 +191,13 @@ class HexGrid:
         paths_many: List[List[List[Coordinate]]] = [[] for _ in ends]
 
         def dfs(current_node: Coordinate, current_path: List[Coordinate]):
-            if len(current_path) == max_n:
+            can_reach_any = False
+            for i, end in enumerate(ends):
+                distance = HexGrid.calculate_distance(current_node, end)
+                if distance <= n_list[i] - len(current_path):
+                    can_reach_any = True
+                    break
+            if not can_reach_any:
                 return
 
             for neighbor in self.get_neighbors(current_node):
