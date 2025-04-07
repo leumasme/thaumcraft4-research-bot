@@ -325,24 +325,31 @@ class HexGrid:
 
 class SolvingHexGrid(HexGrid):
     applied_paths: List[List[Tuple[str, Tuple[int, int]]]]
+    _grid_cache: Dict[Tuple[int, int], str]
 
     def __init__(self) -> None:
         super().__init__()
         self.applied_paths = []
+        self._grid_cache = None
+
+    def invalidate_cache(self):
+        self._grid_cache = None
+        return super().invalidate_cache()
 
     def apply_path(self, path: List[Tuple[int, int]], element_path: List[str]) -> None:
         self.applied_paths.append(list(zip(element_path, path)))
         self.invalidate_cache()
 
     def get_value(self, coord: Tuple[int, int]) -> Optional[str]:
-        # Check applied paths first
-        for path in reversed(self.applied_paths):
-            for element, path_coord in path:
-                if path_coord == coord:
-                    return element
-        # Fallback to the grid
-        # print("Get value for", coord, "is falling back to", super().get_value(coord))
-        return super().get_value(coord)
+        if self._grid_cache is None:
+            # Load base state from the underlying HexGrid
+            self._grid_cache = {coord: aspect for coord, (aspect, _) in self.grid.items()}
+            # Add paths
+            for path in self.applied_paths:
+                for element, path_coord in path:
+                    self._grid_cache[path_coord] = element
+        
+        return self._grid_cache[coord]
 
     def get_pixel_location(self, coord: Tuple[int, int]) -> Tuple[int, int]:
         # Check applied paths first
