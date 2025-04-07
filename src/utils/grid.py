@@ -185,8 +185,6 @@ class HexGrid:
     def pathfind_board_lengths_to_many(
         self, start: Coordinate, ends: List[Coordinate], n_list: List[int]
     ):
-        max_n = max(n_list)
-
         # Depth 3 for: Different ends, Alternative Paths, Nodes in Path
         paths_many: List[List[List[Coordinate]]] = [[] for _ in ends]
 
@@ -203,7 +201,6 @@ class HexGrid:
             for neighbor in self.get_neighbors(current_node):
                 if neighbor in current_path:
                     continue
-
 
                 current_path.append(neighbor)
                 for i, (curr_end, curr_n) in enumerate(zip(ends, n_list)):
