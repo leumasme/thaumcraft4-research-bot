@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "pillow>=10.4.0",
     "pyautogui>=0.9.54",
+    "numpy>=2.2.0",
 ]
 
 [tool.uv]
