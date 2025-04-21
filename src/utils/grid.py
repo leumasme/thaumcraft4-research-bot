@@ -218,7 +218,7 @@ class HexGrid:
 
         return paths_many
 
-    def pathfind_both_lengths_to_many(self, start: Coordinate, ends: List[Coordinate], lengths: List[int], aspect_variations = 1, board_variations = 1) -> List[tuple[List[Coordinate], List[str]]]:
+    def pathfind_both_lengths_to_many(self, start: Coordinate, ends: List[Coordinate], lengths: List[int], aspect_variations = 1, board_variations = 1) -> List[tuple[List[str], List[Coordinate]]]:
         assert len(lengths) == len(ends), "Lengths and ends must be the same length"
         assert len(ends) > 0, "Must have at least one end"
         end_aspects = [self.get_value(end) for end in ends]
@@ -226,14 +226,14 @@ class HexGrid:
 
         board_paths = self.pathfind_board_lengths_to_many(start, ends, lengths)
 
-        valid_path_combinations: list[tuple[List[Coordinate], List[str]]] = []
+        valid_path_combinations: list[tuple[List[str], List[Coordinate]]] = []
         for i in range(len(lengths)):
             combinations = itertools.product(element_paths[i][:aspect_variations], board_paths[i][:board_variations])
             valid_path_combinations.extend(combinations)
     
         return valid_path_combinations
 
-    def pathfind_both_to_many(self, start: Tuple[int, int], ends: List[Tuple[int, int]]) -> List[tuple[List[Coordinate], List[str]]]:
+    def pathfind_both_to_many(self, start: Tuple[int, int], ends: List[Tuple[int, int]]) -> List[tuple[List[str], List[Coordinate]]]:
         assert len(ends) > 0, "Must have at least one end"
         shortest_path_list = self.pathfind_board_shortest_to_many(start, ends)
 
