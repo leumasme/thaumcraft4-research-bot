@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import List, Tuple
 
 from ..utils.log import log
@@ -125,7 +126,12 @@ while remaining_aspects:
 for aspect in aspect_graph.values():
     aspect.sort(key=lambda a: aspect_costs[a])
 
+# Wrapper for lru_cache since List is not hashable, and arguments must be hashable
 def find_cheapest_element_paths_many(start: str, ends_list: List[str], n_list: List[int]) -> List[List[List[str]]]:
+    return _find_cheapest_element_paths_many(start, tuple(ends_list), tuple(n_list))
+
+@lru_cache(maxsize=1000)
+def _find_cheapest_element_paths_many(start: str, ends_list: Tuple[str, ...], n_list: Tuple[int, ...]) -> List[List[List[str]]]:
     assert start != "Free" and start != "Missing", f"{start} is not a valid start aspect"
     assert "Free" not in ends_list and "Missing" not in ends_list, f"{ends_list} contains invalid end aspect"
 

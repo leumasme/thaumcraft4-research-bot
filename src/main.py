@@ -13,7 +13,7 @@ import traceback
 from .utils.window import *
 from .utils.finder import *
 from .utils.grid import HexGrid, SolvingHexGrid
-from .utils.aspects import aspect_parents
+from .utils.aspects import aspect_parents, _find_cheapest_element_paths_many
 from .solvers.ringsolver import solve as ringsolver_solve
 from .utils.renderer import *
 from .utils.log import log
@@ -37,6 +37,10 @@ def main():
         test_all_samples()
     else:
         normal_mode()
+
+    print("CacheInfo find cheapest element paths", _find_cheapest_element_paths_many.cache_info())
+    print("CacheInfo calculate distance", HexGrid.calculate_distance.cache_info())
+    print("CacheInfo get neighbors", HexGrid.get_neighbors.cache_info())
 
 def normal_mode():
     inventory_aspects: list[OnscreenAspect] = None

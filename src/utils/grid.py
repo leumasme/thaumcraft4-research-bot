@@ -2,6 +2,7 @@ import base64
 import hashlib
 import json
 import itertools
+from functools import lru_cache
 from typing import Dict, Tuple, Optional, List
 from copy import deepcopy
 
@@ -35,6 +36,7 @@ class HexGrid:
         return self.grid[coord][1]
 
     @staticmethod
+    @lru_cache(maxsize=1000)
     def calculate_distance(start: Coordinate, end: Coordinate) -> int:
         # Very good resource: https://www.redblobgames.com/grids/hexagons/#distances
         # We use "Doubled coordinates" (doubleheight) with y being the height
@@ -42,6 +44,7 @@ class HexGrid:
         dy = abs(end[1] - start[1])
         return dx + max(0, (dy - dx) // 2)
 
+    @lru_cache(maxsize=1000)
     def get_neighbors(self, coord: Tuple[int, int]) -> List[Tuple[int, int]]:
         q, r = coord
         # todo: maybe sort neighbors by distance to center to promote going towards center?
