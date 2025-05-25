@@ -136,7 +136,7 @@ class RingSolver:
     def solve(self):
         # TODO: Use ring rotation?
         self.initial_nodes = [
-            (coord)
+            coord
             for (coord, aspect) in self.solving
             if aspect != "Free" and aspect != "Missing"
         ]

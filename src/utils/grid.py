@@ -6,25 +6,24 @@ from functools import lru_cache
 from typing import Dict, Tuple, Optional, List
 from copy import deepcopy
 
-from ..utils.aspects import aspect_costs, find_cheapest_element_paths_many 
+
+from ..utils.aspects import aspect_costs, find_cheapest_element_paths_many
 from ..utils.log import log
-from ..utils.aspects import aspect_graph
 
 type Coordinate = Tuple[int, int]
 
 class HexGrid:
     # Grid coordinate -> Aspect, Screen Coordinate
     grid: Dict[Tuple[int, int], Tuple[str, Tuple[int, int]]]
-    connected_positions_cache: List[set[tuple[int, int]]]
 
     def __init__(self) -> None:
         self.grid = {}
         self.connected_positions_cache = list()
 
     def set_hex(
-        self, coord: Tuple[int, int], value: str, pixelCoord: Tuple[int, int]
+        self, coord: Tuple[int, int], value: str, pixel_coord: Tuple[int, int]
     ) -> None:
-        self.grid[coord] = (value, pixelCoord)
+        self.grid[coord] = (value, pixel_coord)
 
     def set_value(self, coord: Tuple[int, int], value: str) -> None:
         self.grid[coord] = (value, self.grid[coord][1])
@@ -36,7 +35,7 @@ class HexGrid:
         return self.grid[coord][1]
 
     @staticmethod
-    @lru_cache(maxsize=1000)
+    @lru_cache(maxsize=2000)
     def calculate_distance(start: Coordinate, end: Coordinate) -> int:
         # Very good resource: https://www.redblobgames.com/grids/hexagons/#distances
         # We use "Doubled coordinates" (doubleheight) with y being the height
@@ -245,7 +244,7 @@ class HexGrid:
         for i in range(len(lengths)):
             combinations = itertools.product(element_paths[i][:aspect_variations], board_paths[i][:board_variations])
             valid_path_combinations.extend(combinations)
-    
+
         return valid_path_combinations
 
     def pathfind_both_to_many(self, start: Tuple[int, int], ends: List[Tuple[int, int]]) -> List[tuple[List[str], List[Coordinate]]]:
@@ -273,53 +272,11 @@ class HexGrid:
             paths.extend(self.pathfind_both_lengths_to_many(start, reachable_ends, lengths_plus_one))
 
         return paths
-    
-    def _populate_connected_positions_cache(self, start: Coordinate) -> set[Coordinate]:
-        visited: set[Coordinate] = set()
-        queue = [start]
-
-        while queue:
-            current = queue.pop(0)
-            visited.add(current)
-
-            for neighbor in self.get_neighbors(current):
-                # Is the current aspect connectable to the neighbor aspect?
-                if neighbor not in visited and self.get_value(neighbor) in aspect_graph[self.get_value(current)]:
-                    queue.append(neighbor)
-
-        self.connected_positions_cache.append(visited)
-        return visited
-    
-    def get_connected_positions(self, start: Coordinate) -> set[Coordinate]:
-        # Check if the start coordinate is already in the cache
-        for connected_set in self.connected_positions_cache:
-            if start in connected_set:
-                return connected_set
-
-        # If not, populate the cache and return the connected positions
-        return self._populate_connected_positions_cache(start)
-
-    def are_positions_connected(self, start: Coordinate, end: Coordinate) -> bool:
-        # Check if the start and end coordinates are connected by a path of aspects which may connect to each other
-        for connected_set in self.connected_positions_cache:
-            if start in connected_set or end in connected_set:
-                return start in connected_set and end in connected_set
-
-        reachable = self._populate_connected_positions_cache(start)
-        return end in reachable
-    
-    def get_unconnected_filled_positions(self, target: Coordinate) -> List[Coordinate]:
-        return [
-            coord
-            for (coord, aspect) in self
-            if not self.are_positions_connected(target, coord)
-            and aspect != "Free"
-            and aspect != "Missing"
-        ]
 
     def invalidate_cache(self) -> None:
         # Invalidate the cache of connected positions, for use when the grid changes (via SolvingHexGrid)
-        self.connected_positions_cache = []
+        # self.connected_positions_cache = []
+        return
 
     def hash_board(self) -> str:
         # Hashes only the "Grid Coordinate -> Aspect" part of the grid, ignoring the screen coordinates
@@ -333,22 +290,25 @@ class HexGrid:
         base64_str = base64_str.rstrip("=")
 
         return base64_str
-    
+
     def __iter__(self):
         return HexGridIterator(self)
-            
+
 
 class SolvingHexGrid(HexGrid):
     applied_paths: List[List[Tuple[str, Tuple[int, int]]]]
-    _grid_cache: Dict[Tuple[int, int], str]
+    _grid_cache: Dict[Tuple[int, int], str] | None
+    connected_positions_cache: List[set[tuple[int, int]]]
 
     def __init__(self) -> None:
         super().__init__()
         self.applied_paths = []
+        self.connected_positions_cache = []
         self._grid_cache = None
 
     def invalidate_cache(self):
         self._grid_cache = None
+        self.connected_positions_cache = []
         return super().invalidate_cache()
 
     def apply_path(self, path: List[Tuple[int, int]], element_path: List[str]) -> None:
@@ -363,7 +323,7 @@ class SolvingHexGrid(HexGrid):
             for path in self.applied_paths:
                 for element, path_coord in path:
                     self._grid_cache[path_coord] = element
-        
+
         return self._grid_cache[coord]
 
     def get_pixel_location(self, coord: Tuple[int, int]) -> Tuple[int, int]:
@@ -383,18 +343,71 @@ class SolvingHexGrid(HexGrid):
                     current_sum += aspect_costs[value]
         return current_sum
 
+    def _populate_connected_positions_cache(self, start: Coordinate) -> set[Coordinate]:
+        connected: set[Coordinate] = {start}
+
+        changes = True
+        while changes:
+            changes = False
+
+            for path in self.applied_paths:
+                if path[0][1] in connected:
+                    other = path[-1][1]
+                elif path[-1][1] in connected:
+                    other = path[0][1]
+                else:
+                    continue
+
+                if other in connected:
+                    continue
+
+                changes = True
+
+                for _, coord in path:
+                    connected.add(coord)
+
+        self.connected_positions_cache.append(connected)
+        return connected
+
+    def get_connected_positions(self, start: Coordinate) -> set[Coordinate]:
+        # Check if the start coordinate is already in the cache
+        for connected_set in self.connected_positions_cache:
+            if start in connected_set:
+                return connected_set
+
+        # If not, populate the cache and return the connected positions
+        return self._populate_connected_positions_cache(start)
+
+    def are_positions_connected(self, start: Coordinate, end: Coordinate) -> bool:
+        # Check if the start and end coordinates are connected by a path of aspects which may connect to each other
+        for connected_set in self.connected_positions_cache:
+            if start in connected_set or end in connected_set:
+                return start in connected_set and end in connected_set
+
+        reachable = self._populate_connected_positions_cache(start)
+        return end in reachable
+
+    def get_unconnected_filled_positions(self, target: Coordinate) -> List[Coordinate]:
+        return [
+            coord
+            for (coord, aspect) in self
+            if not self.are_positions_connected(target, coord)
+               and aspect != "Free"
+               and aspect != "Missing"
+        ]
+
     @classmethod
     def from_hexgrid(cls, hexgrid: HexGrid) -> "SolvingHexGrid":
         solving_hexgrid = cls()
         solving_hexgrid.grid = deepcopy(hexgrid.grid)
         return solving_hexgrid
-    
+
     def copy(self) -> HexGrid:
         new_instance = SolvingHexGrid()
-        
+
         # Does not need to be copied as it is not modified
-        new_instance.grid = self.grid 
-        
+        new_instance.grid = self.grid
+
         new_instance.applied_paths = deepcopy(self.applied_paths)
         return new_instance
 
@@ -403,14 +416,14 @@ class HexGridIterator:
         self.hexgrid = hexgrid
         self.coordinates = list(hexgrid.grid.keys())
         self.index = 0
-    
+
     def __iter__(self):
         return self
-    
+
     def __next__(self):
         if self.index >= len(self.coordinates):
             raise StopIteration
-        
+
         coord = self.coordinates[self.index]
         # Use get_value instead of the .grid values so this also works with SolvingHexGrid
         value = self.hexgrid.get_value(coord)

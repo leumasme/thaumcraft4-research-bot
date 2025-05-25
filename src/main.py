@@ -43,7 +43,7 @@ def main():
     print("CacheInfo get neighbors", HexGrid.get_neighbors.cache_info())
 
 def normal_mode():
-    inventory_aspects: list[OnscreenAspect] = None
+    inventory_aspects: list[OnscreenAspect] | None = None
     while True:
         image, window_base_coords = setup_image(
             TEST_MODE, inventory_aspects is not None
