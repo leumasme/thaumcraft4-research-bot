@@ -189,7 +189,13 @@ class HexGrid:
         # Depth 3 for: Different ends, Alternative Paths, Nodes in Path
         paths_many: List[List[List[Coordinate]]] = [[] for _ in ends]
 
-        def dfs(current_node: Coordinate, current_path: List[Coordinate]):
+        # Stack entries: (current_node, current_path)
+        stack = [(start, [start])]
+
+        while stack:
+            current_node, current_path = stack.pop()
+
+            # Check if we can reach any end from current position (pruning optimization)
             can_reach_any = False
             for i, end in enumerate(ends):
                 distance = HexGrid.calculate_distance(current_node, end)
@@ -197,25 +203,25 @@ class HexGrid:
                     can_reach_any = True
                     break
             if not can_reach_any:
-                return
+                continue
 
             for neighbor in self.get_neighbors(current_node):
                 if neighbor in current_path:
                     continue
 
-                current_path.append(neighbor)
+                # Create new path with neighbor added
+                new_path = current_path + [neighbor]
+
+                # Check if we've reached any end with correct length
                 for i, (curr_end, curr_n) in enumerate(zip(ends, n_list)):
-                    if neighbor == curr_end and len(current_path) == curr_n:
-                        paths_many[i].append(list(current_path))
-                
+                    if neighbor == curr_end and len(new_path) == curr_n:
+                        paths_many[i].append(list(new_path))
+
                 # Don't cross over non-free board spaces.
                 # Stepping on the occupied end space is allowed, but that is already checked above.
                 neighbor_value = self.get_value(neighbor)
                 if neighbor_value == "Free":
-                    dfs(neighbor, current_path)
-                current_path.pop()
-
-        dfs(start, [start])
+                    stack.append((neighbor, new_path))
 
         return paths_many
 
