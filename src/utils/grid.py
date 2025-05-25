@@ -34,6 +34,7 @@ class HexGrid:
     def get_pixel_location(self, coord: Tuple[int, int]) -> Tuple[int, int]:
         return self.grid[coord][1]
 
+    @staticmethod
     def calculate_distance(start: Coordinate, end: Coordinate) -> int:
         # Very good resource: https://www.redblobgames.com/grids/hexagons/#distances
         # We use "Doubled coordinates" (doubleheight) with y being the height
