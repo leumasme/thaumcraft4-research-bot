@@ -189,6 +189,10 @@ class HexGrid:
         # Depth 3 for: Different ends, Alternative Paths, Nodes in Path
         paths_many: List[List[List[Coordinate]]] = [[] for _ in ends]
 
+        # Pre-compute info needed to check if a path is complete
+        # Faster as a dictionary lookup than looping through the zip every time
+        end_to_info = {end: (i, n) for i, (end, n) in enumerate(zip(ends, n_list))}
+
         # Stack entries: (current_node, current_path)
         stack = [(start, [start])]
 
@@ -213,8 +217,9 @@ class HexGrid:
                 new_path = current_path + [neighbor]
 
                 # Check if we've reached any end with correct length
-                for i, (curr_end, curr_n) in enumerate(zip(ends, n_list)):
-                    if neighbor == curr_end and len(new_path) == curr_n:
+                if neighbor in end_to_info:
+                    i, curr_n = end_to_info[neighbor]
+                    if len(new_path) == curr_n:
                         paths_many[i].append(list(new_path))
 
                 # Don't cross over non-free board spaces.
