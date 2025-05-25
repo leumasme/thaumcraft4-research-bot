@@ -127,7 +127,7 @@ for aspect in aspect_graph.values():
 
 def find_cheapest_element_paths_many(start: str, ends_list: List[str], n_list: List[int]) -> List[List[List[str]]]:
     assert start != "Free" and start != "Missing", f"{start} is not a valid start aspect"
-    assert "Free" not in ends_list and "Missing" not in ends_list, f"{end} is not a valid end aspect"
+    assert "Free" not in ends_list and "Missing" not in ends_list, f"{ends_list} contains invalid end aspect"
 
     max_n: int = max(n_list)
 
