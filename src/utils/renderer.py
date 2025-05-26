@@ -55,13 +55,16 @@ def draw_placing_hints(
             print("Could not find aspect", aspect, "in", inventory_aspects)
             continue
 
-        invImgX, invImgY = get_center_of_box(inventory_location)
-        boardImgX, boardImgY = grid.get_pixel_location(board_coord)
+        inv_img_x, inv_img_y = get_center_of_box(inventory_location)
+        board_img_x, board_img_y = grid.get_pixel_location(board_coord)
 
         color = "#"+aspect_colors[aspect]
-        draw.line((invImgX, invImgY, boardImgX, boardImgY), fill=color, width=2)
+        draw.line((inv_img_x, inv_img_y, board_img_x, board_img_y), fill=color, width=2)
 
         icon = get_aspect_icon_from_name(aspect)
         icon_width, icon_height = icon.size
 
-        image.paste(icon, (invImgX - icon_width // 2, invImgY - icon_height // 2), icon)
+        try:
+            image.paste(icon, (inv_img_x - icon_width // 2, inv_img_y - icon_height // 2), icon)
+        except Exception as e:
+            log.error("Failed to draw placing hint for aspect %s at board pos %s", aspect, board_coord)
