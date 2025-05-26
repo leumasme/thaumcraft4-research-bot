@@ -4,7 +4,7 @@ from time import sleep
 
 from .aspects import aspect_parents
 from .finder import get_center_of_box
-from .grid import HexGrid, Coordinate, OnscreenAspect
+from .grid import HexGrid, Coordinate, OnscreenAspect, SolvingHexGrid
 from .window import add_offset
 from .log import log
 
@@ -21,6 +21,13 @@ def drag_mouse_from_to(window_base_coords: Coordinate, start: Coordinate, end: C
     gui.mouseUp()
     sleep(0.03)
     gui.moveTo(window_base_coords + (10, 10))
+
+def place_all_aspects(window_base_coords: Coordinate, inventory_aspects: list[OnscreenAspect], solved: SolvingHexGrid):
+    for path in solved.applied_paths:
+        for aspect, coord in path[1:-1]:
+            place_aspect_at(
+                window_base_coords, inventory_aspects, solved, aspect, coord
+            )
 
 def place_aspect_at(
     window_base_coords: Coordinate,

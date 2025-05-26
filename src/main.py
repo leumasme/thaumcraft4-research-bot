@@ -15,7 +15,8 @@ from .utils.aspects import aspect_parents, _find_cheapest_element_paths_many
 from .solvers.ringsolver import solve as ringsolver_solve
 from .utils.renderer import *
 from .utils.log import log
-from .utils.mouseactions import place_aspect_at, craft_inventory_aspect, craft_missing_inventory_aspects
+from .utils.mouseactions import place_aspect_at, craft_inventory_aspect, craft_missing_inventory_aspects, \
+    place_all_aspects
 
 # Disable 0.1 seconds delay between each pyautogui call
 gui.PAUSE = 0
@@ -81,13 +82,13 @@ def normal_mode():
 
         if TEST_MODE:
             break
-        for path in solved.applied_paths:
-            for aspect, coord in path[1:-1]:
-                place_aspect_at(
-                    window_base_coords, inventory_aspects, grid, aspect, coord
-                )
 
-        input("-- Press enter to process next board --")
+        text = "r"
+        while text.lower().strip() == "r":
+            # TODO: detect missing/incorrectly placed aspects
+            # But how? Unconnected placed aspects have a different color than they should
+            place_all_aspects(window_base_coords, inventory_aspects, solved)
+            text = input("-- Press enter to process next board (or type r to retry placing) --")
 
 
 def test_all_samples():
