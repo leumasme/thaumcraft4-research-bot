@@ -2,11 +2,12 @@
 
 This is a screenshot-based bot to automate the Thaumcraft 4 research minigame (Minecraft 1.7.10).  
 Made for the [Gregtech: New Horizons](https://github.com/GTNewHorizons/GT-New-Horizons-Modpack) Modpack (uses TC Research Tweaks addon)  
+- Let me know if there's any other decent 1.7.10 modpacks using Thaumcraft 4, adding support shouldn't be much work
 Meant to replace the various Thaumcraft Research "Helper" websites
 
 ## Preview
 
-TODO: Video
+https://github.com/user-attachments/assets/235ce89c-b1fc-477e-9aa5-c23455fcd1ae
 
 ## Features
 - Pixel-based puzzle recognition
