@@ -1,30 +1,24 @@
 from collections import defaultdict
 from pathlib import Path
-import pyautogui as gui
-from time import sleep
 from PIL import ImageDraw
 import PIL.Image
-from typing import Tuple
 import time
 import sys
 import traceback
+from time import sleep
 
 # Local libs
 from .utils.window import *
 from .utils.finder import *
-from .utils.grid import HexGrid, SolvingHexGrid
+from .utils.grid import HexGrid, SolvingHexGrid, OnscreenAspect
 from .utils.aspects import aspect_parents, _find_cheapest_element_paths_many
 from .solvers.ringsolver import solve as ringsolver_solve
 from .utils.renderer import *
 from .utils.log import log
-
-from . import *
+from .utils.mouseactions import place_aspect_at, craft_inventory_aspect, craft_missing_inventory_aspects
 
 # Disable 0.1 seconds delay between each pyautogui call
 gui.PAUSE = 0
-
-# (min_x, min_y, max_x, max_y), aspect_name
-type OnscreenAspect = Tuple[Tuple[int, int, int, int], str]
 
 MODE = sys.argv[1] if len(sys.argv) > 1 else None
 TEST_MODE = MODE == "test"  # Read debug_input and dont perform actions
@@ -50,16 +44,31 @@ def normal_mode():
         )
 
         pixels = image.load()
-        grid = generate_hexgrid_from_image(image, pixels)
 
-        if inventory_aspects is None:
-            inventory_aspects = generate_inventory_aspects_from_image(image, pixels)
+        if TEST_MODE:
+            inventory_aspects = analyze_image_inventory(image, pixels)
+        elif inventory_aspects is None:
+            inventory_aspects, needs_image_retake = find_and_create_inventory_aspects(image, pixels, window_base_coords)
+            # TODO: scuffed!
+            if needs_image_retake:
+                image, window_base_coords = setup_image(
+                    TEST_MODE, inventory_aspects is not None
+                )
+                pixels = image.load()
+
+        grid = generate_hexgrid_from_image(image, pixels)
 
         save_input_image(image, grid)
 
-        solved = generate_solution_from_hexgrid(grid)
-
         draw = ImageDraw.Draw(image)
+        try:
+            solved = generate_solution_from_hexgrid(grid)
+        except Exception as e:
+            print("Failed to generate solution, dumping board interpretation debug render")
+            draw_board_coords(grid, draw)
+            image.save("debug_render.png")
+            raise e
+
         for path in solved.applied_paths:
             draw_board_path(image, solved, path)
             draw_placing_hints(
@@ -261,23 +270,49 @@ def build_grid(columns, valid_y_coords, grid: HexGrid, smallest_y_diff):
 
             grid.set_hex((x_index, y_index), value, (x, y))
 
-def generate_inventory_aspects_from_image(
-    image: Image, pixels
-) -> list[OnscreenAspect]:
+def find_and_create_inventory_aspects(
+    image: Image, pixels, window_base_coords: tuple[int, int]
+) -> Tuple[list[OnscreenAspect], bool]:
     inventory_aspects = analyze_image_inventory(image, pixels)
+
+    owned_aspects = set(name for _, name in inventory_aspects)
+    all_aspects = set(aspect_parents.keys())
+
+    missing_aspects = all_aspects - owned_aspects
+
+    for aspect in missing_aspects:
+        parent_a, parent_b = aspect_parents[aspect]
+        log.error(
+            f"Missing aspect {aspect} from inventory (made from {parent_a} + {parent_b})"
+        )
+
+    if len(missing_aspects) > 0:
+        text = input("Missing aspects from inventory! Should they be crafted automatically? [y/N]:")
+        if text.lower() == "y":
+            needs_next_iteration = True
+            while needs_next_iteration:
+                crafts = craft_missing_inventory_aspects(window_base_coords, inventory_aspects, missing_aspects)
+                needs_next_iteration = crafts > 0
+
+                sleep(0.05)
+                # TODO: scuffed!
+                image, window_base_coords = setup_image(
+                    False
+                )
+                inventory_aspects = analyze_image_inventory(image, image.load())
+
+                owned_aspects = set(name for _, name in inventory_aspects)
+                print("Owned aspects:", owned_aspects)
+
+                missing_aspects = all_aspects - owned_aspects
+            if len(missing_aspects) > 0:
+                print("Missing:", missing_aspects)
+                raise Exception("Missing aspects from inventory even after crafting.")
+            return inventory_aspects, True
+        else:
+            raise Exception("Missing aspects from inventory... safety shutdown")
     
-    inventory_aspects = inventory_aspects
-    missing = False
-    for aspect, (parent_a, parent_b) in aspect_parents.items():
-        if not any([name == aspect for _, name in inventory_aspects]):
-            missing = True
-            log.error(
-                f"Missing aspect {aspect} from inventory (made from {parent_a} + {parent_b})"
-            )
-    if missing:
-        raise Exception("Missing aspects from inventory... safety shutdown")
-    
-    return inventory_aspects
+    return inventory_aspects, False
 
 def generate_hexgrid_from_image(image: Image, pixels) -> HexGrid:
     board_aspects, empty_hexagons = analyze_image_board(
@@ -336,36 +371,6 @@ def save_input_image(image: Image, grid: HexGrid):
     if not img_path.exists():
         img_path.parent.mkdir(exist_ok=True)
         image.save(str(img_path))
-
-
-def place_aspect_at(
-    window_base_coords,
-    inventory_aspects,
-    grid: HexGrid,
-    aspect: str,
-    board_coord: Tuple[int, int],
-):
-    inventory_location = next(
-        (loc for loc, name in inventory_aspects if name == aspect), None
-    )
-    if inventory_location is None:
-        log.error("Could not find aspect %s in inventory %s", aspect, inventory_aspects)
-        return
-
-    invImgX, invImgY = get_center_of_box(inventory_location)
-    boardImgX, boardImgY = grid.get_pixel_location(board_coord)
-
-    invX, invY = add_offset(window_base_coords, (invImgX, invImgY))
-    boardX, boardY = add_offset(window_base_coords, (boardImgX, boardImgY))
-
-    gui.moveTo(invX, invY)
-    sleep(0.03)
-    gui.mouseDown()
-    sleep(0.03)
-    gui.moveTo(boardX, boardY)
-    sleep(0.03)
-    gui.mouseUp()
-    sleep(0.03)
 
 if __name__ == "__main__":
     main()

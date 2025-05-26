@@ -11,6 +11,8 @@ from ..utils.aspects import aspect_costs, find_cheapest_element_paths_many
 from ..utils.log import log
 
 type Coordinate = Tuple[int, int]
+# (min_x, min_y, max_x, max_y), aspect_name
+type OnscreenAspect = Tuple[Tuple[int, int, int, int], str]
 
 class HexGrid:
     # Grid coordinate -> Aspect, Screen Coordinate
