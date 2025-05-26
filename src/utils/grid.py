@@ -269,7 +269,7 @@ class HexGrid:
 
         paths = self.pathfind_both_lengths_to_many(start, reachable_ends, lengths)
 
-        if len(paths) < 10:
+        if len(paths) < 5:
             lengths_plus_one = [length + 1 for length in lengths]
             paths.extend(self.pathfind_both_lengths_to_many(start, reachable_ends, lengths_plus_one))
 
