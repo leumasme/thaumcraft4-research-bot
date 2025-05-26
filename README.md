@@ -34,6 +34,13 @@ Some technical know-how currently required.
     - You may want to hide NEI (default keybind in GTNH: `O`)
 - Open a terminal in the project folder (Windows Terminal/Powershell/CMD)
 - Start the project with the command: `uv run main`
+  - The bot will now:
+    - Bring the game to the foreground
+    - Take a screenshot
+    - Parse the puzzle board from the screenshot
+    - Generate a solution for the puzzle
+    - Move the mouse to place the aspects according to the solution
+- After it's done placing aspects, put in the next unsolved Research Notes and press enter in the terminal to solve the next board
 
 ## Limitations
 - **No Linux Support**
