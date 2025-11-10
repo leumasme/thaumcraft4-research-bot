@@ -3,6 +3,7 @@
 This is a screenshot-based bot to automate the Thaumcraft 4 research minigame (Minecraft 1.7.10).  
 Made for the [Gregtech: New Horizons](https://github.com/GTNewHorizons/GT-New-Horizons-Modpack) Modpack (uses TC Research Tweaks addon)  
 - Let me know if there's any other decent 1.7.10 modpacks using Thaumcraft 4, adding support shouldn't be much work
+
 Meant to replace the various Thaumcraft Research "Helper" websites
 
 ## Preview
@@ -26,7 +27,7 @@ Some technical know-how currently required.
 - Install [uv](https://docs.astral.sh/uv/) (python runner / package manager)
 - Download the code of the project and unzip it into a new folder
 - Prepare the Game
-  - Install and activate the required resource pack ("tcbotresourcepack.zip")
+  - Install and activate the required resource pack
   - Open a Research Table and put in an unsolved Research Notes item
     - There shouldn't be any aspects on the puzzle board except the initially given ones
   - Make sure the game window is on your main screen and is large enough
