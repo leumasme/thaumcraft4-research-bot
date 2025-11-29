@@ -74,6 +74,22 @@ Even these aren't good, though: the screenshot library just fails when the Windo
 Q: Why isn't this a mod?  
 A: That's too cheaty in my opinion.  
 
+## Building & Running
+
+To run as a non-technical user:  
+Download and run the .exe from [the releases page](https://github.com/leumasme/thaumcraft4-research-bot/releases)
+
+To run:
+- Install [uv](https://docs.astral.sh/uv/)
+- Run in CLI: `uv run main`
+  - To run in test mode: `uv run main test`
+    - This uses `debug_input.png` instead of taking a screenshot, and doesn't perform any clicks/window actions
+  - To run in test-all mode: `uv run main test_all`
+    - Runs test mode for all inputs in the `test_inputs` folder, for benchmarking & testing that all boards can be solved
+
+To build into a .exe:  
+`uv run -m nuitka --python-flag=-m --output-dir=dist --mode=onefile --lto=yes src`
+
 ## Issues, Contributions, Contact
 
 Use Github.  
