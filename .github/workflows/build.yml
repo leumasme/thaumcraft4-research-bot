@@ -1,0 +1,26 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Build executable
+        run: uv run -m nuitka --python-flag=-m --output-dir=dist --mode=onefile --lto=yes --output-file=thaumcraft4-research-bot.exe --assume-yes-for-downloads src
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: executable
+          path: dist/thaumcraft4-research-bot.exe
