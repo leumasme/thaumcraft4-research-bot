@@ -158,14 +158,13 @@ def find_squares_in_frame(
     frame: Tuple[int, int, int, int], pixels, target_color: Tuple[int, int, int]
 ) -> List[Tuple[int, int]]:
     min_x, min_y, max_x, max_y = frame
-    squares = []
     squares_bounding_boxes = []
 
     for y in range(min_y, max_y + 1):
         for x in range(min_x, max_x + 1):
-            color = pixels[x, y]
-            if color != target_color:
+            if pixels[x, y] != target_color:
                 continue
+
             # Check if this pixel is inside any of the existing squares
             in_existing_square = False
             for bbox in squares_bounding_boxes:
@@ -174,27 +173,32 @@ def find_squares_in_frame(
                     in_existing_square = True
                     break
             if in_existing_square:
-                continue  # Skip pixels inside squares we've already processed
-            # Find the size of the square
-            size = 1
-            # Find width by moving right
-            while x + size <= max_x and pixels[x + size, y] == target_color:
-                size += 1
-            # Find height by moving down
-            size_y = 1
-            while y + size_y <= max_y and pixels[x, y + size_y] == target_color:
-                size_y += 1
-            # Take the smaller of width and height as the square size
-            square_size = min(size, size_y)
-            # Record the bounding box
-            bbox = (x, y, x + square_size - 1, y + square_size - 1)
-            squares_bounding_boxes.append(bbox)
-    # Convert bounding boxes to center points using list comprehension
-    squares = [
-        get_center_of_box((min_x_bb, min_y_bb, max_x_bb, max_y_bb))
-        for min_x_bb, min_y_bb, max_x_bb, max_y_bb in squares_bounding_boxes
-    ]
-    return squares
+                continue
+
+            # Found a new region, expand it by alternating x and y directions
+            bbox_min_x, bbox_min_y = x, y
+            bbox_max_x, bbox_max_y = x, y
+
+            # Expand in both directions until neither works
+            while True:
+                expanded = False
+
+                # Try to expand right (+x)
+                if bbox_max_x + 1 <= max_x and pixels[bbox_max_x + 1, bbox_max_y] == target_color:
+                    bbox_max_x += 1
+                    expanded = True
+
+                # Try to expand down (+y)
+                if bbox_max_y + 1 <= max_y and pixels[bbox_max_x, bbox_max_y + 1] == target_color:
+                    bbox_max_y += 1
+                    expanded = True
+
+                if not expanded:
+                    break
+
+            squares_bounding_boxes.append((bbox_min_x, bbox_min_y, bbox_max_x, bbox_max_y))
+
+    return [get_center_of_box(bbox) for bbox in squares_bounding_boxes]
 
 
 def get_center_of_box(box: Tuple[int, int, int, int]) -> Tuple[int, int]:
@@ -202,3 +206,9 @@ def get_center_of_box(box: Tuple[int, int, int, int]) -> Tuple[int, int]:
     center_x = (min_x + max_x) // 2
     center_y = (min_y + max_y) // 2
     return (center_x, center_y)
+
+def find_close_x_in_grouped(x: int, grouped: dict, threshold: int) -> int:
+    for existing_x in grouped.keys():
+        if abs(existing_x - x) <= threshold:
+            return existing_x
+    return x

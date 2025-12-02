@@ -181,6 +181,7 @@ def analyze_image_inventory(image: PIL.Image.Image, pixels):
 def group_hexagons(empty_hexagons, board_aspects, image_height):
     grouped = defaultdict(list)
     for x, y in empty_hexagons:
+        x = find_close_x_in_grouped(x, grouped, 3)
         grouped[x].append((x, y, "Free"))
 
     for box_coords, name in board_aspects:
@@ -188,11 +189,7 @@ def group_hexagons(empty_hexagons, board_aspects, image_height):
         x = int((right + left) / 2)
         y = (bottom + top) / 2
 
-        # Merge close x coordinates
-        for existing_x in grouped.keys():
-            if abs(existing_x - x) <= 2:
-                x = existing_x
-                break
+        x = find_close_x_in_grouped(x, grouped, 3)
         grouped[x].append((x, y, name))
 
     grouped_items = sorted(grouped.items(), key=lambda e: e[0])
