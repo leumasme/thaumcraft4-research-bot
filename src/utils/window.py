@@ -5,7 +5,8 @@ import pyautogui as gui
 from PIL.Image import Image
 from typing import Tuple
 
-from ..utils.log import log
+from .config import Config
+from .log import log
 
 # Import Windows API
 user32 = ctypes.WinDLL("user32", use_last_error=True)
@@ -33,11 +34,11 @@ def screenshot_window(window: gw.Win32Window) -> Tuple[Image, Tuple[int, int]]:
     return (image.convert("RGB"), (top_left.x, top_left.y))
 
 
-def find_game() -> gw.Win32Window:
+def find_game(title: str) -> gw.Win32Window:
     windows = [
         win
-        for win in gw.getWindowsWithTitle("GT: New Horizons")
-        if win.title.startswith("GT: New Horizons")
+        for win in gw.getWindowsWithTitle(title)
+        if win.title.startswith(title)
     ]
     if len(windows) != 1:
         for window in windows:

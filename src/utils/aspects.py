@@ -1,9 +1,11 @@
 from functools import lru_cache
 from typing import List, Tuple
 
+
+from ..utils.config import get_global_config
 from ..utils.log import log
 
-aspect_parents = {
+aspect_parents: dict[str, Tuple[str, str] | Tuple[None, None]] = {
     "aer": (None, None),
     "aqua": (None, None),
     "ordo": (None, None),
@@ -75,9 +77,16 @@ aspect_parents = {
     "tenebrae": ("vacuos", "lux"),  # missing from automatic scraping for some reason
 }
 
+for disabled_aspect in get_global_config().disabled_aspects:
+    disabled_aspect = disabled_aspect.lower()
+    if disabled_aspect in aspect_parents:
+        del aspect_parents[disabled_aspect]
+    else:
+        log.warning(f"Disabled aspect '{disabled_aspect}' did not exist in the first place")
+
 # Build the graph as an adjacency list
 from collections import defaultdict
-
+# TODO: is this still needed instead of using aspect_parents?
 aspect_graph: defaultdict[str, List[str]] = defaultdict(list)
 
 # Add edges between aspects and their parents
@@ -90,12 +99,12 @@ for aspect, parents in aspect_parents.items():
                 aspect_graph[aspect].append(parent)
 
 # Compute aspect costs without recursion by caching the results in a dictionary
-aspect_costs = {}
+aspect_costs = {k.lower(): v for k, v in get_global_config().aspect_cost_overrides.items()}
 remaining_aspects = set(aspect_parents.keys())
 
 # Initialize primal aspects (aspects without parents) with cost 1
 for aspect, parents in aspect_parents.items():
-    if parents == (None, None) or parents == (None,):
+    if parents == (None, None) and aspect not in aspect_costs:
         aspect_costs[aspect] = 1
         remaining_aspects.remove(aspect)
 

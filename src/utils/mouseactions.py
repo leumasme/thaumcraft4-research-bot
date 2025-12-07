@@ -1,5 +1,4 @@
 import pyautogui as gui
-from typing import Tuple
 from time import sleep
 
 from .aspects import aspect_parents

@@ -7,9 +7,11 @@ import sys
 import traceback
 from time import sleep
 
+
 # Local libs
 from .utils.window import *
 from .utils.finder import *
+from .utils.config import get_global_config
 from .utils.grid import HexGrid, SolvingHexGrid, OnscreenAspect
 from .utils.aspects import aspect_parents, _find_cheapest_element_paths_many
 from .solvers.ringsolver import solve as ringsolver_solve
@@ -28,16 +30,17 @@ TEST_ALL_MODE = MODE == "test_all"  # Run test for all collected test_inputs
 
 def main():
     print("MODE=", MODE)
+    config = get_global_config()
     if TEST_ALL_MODE:
-        test_all_samples()
+        test_all_samples(config)
     else:
-        normal_mode()
+        normal_mode(config)
 
     print("CacheInfo find cheapest element paths", _find_cheapest_element_paths_many.cache_info())
     print("CacheInfo calculate distance", HexGrid.calculate_distance.cache_info())
     print("CacheInfo get neighbors", HexGrid.get_neighbors.cache_info())
 
-def normal_mode():
+def normal_mode(config: Config):
     inventory_aspects: list[OnscreenAspect] | None = None
     while True:
         image, window_base_coords = setup_image(
@@ -91,7 +94,7 @@ def normal_mode():
             text = input("-- Press enter to process next board (or type r to retry placing) --")
 
 
-def test_all_samples():
+def test_all_samples(config: Config):
     test_files = list(Path("./test_inputs").glob("board_*.png"))
     print(f"Found {len(test_files)} test samples to check")
 
@@ -129,13 +132,12 @@ def setup_image(test_mode=True, skip_focus=False):
         image = PIL.Image.open("debug_input.png")
         window_base_coords = (0, 0)
     else:
-        window = find_game()
+        window = find_game(get_global_config().game_window_title)
 
+        if not window.isActive:
+            window.activate()
+            sleep(0.5)
         if not skip_focus:
-            if not window.isActive:
-                window.activate()
-                sleep(0.5)
-
             if not window.isMaximized:
                 window.moveTo(10, 10)
                 sleep(0.5)
