@@ -22,11 +22,13 @@ def drag_mouse_from_to(window_base_coords: Coordinate, start: Coordinate, end: C
     gui.moveTo(window_base_coords + (10, 10))
 
 def place_all_aspects(window_base_coords: Coordinate, inventory_aspects: list[OnscreenAspect], solved: SolvingHexGrid):
+    start_pos = gui.position()
     for path in solved.applied_paths:
         for aspect, coord in path[1:-1]:
             place_aspect_at(
                 window_base_coords, inventory_aspects, solved, aspect, coord
             )
+    gui.moveTo(start_pos)
 
 def place_aspect_at(
     window_base_coords: Coordinate,
