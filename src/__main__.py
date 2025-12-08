@@ -6,6 +6,8 @@ import time
 import sys
 import traceback
 from time import sleep
+import msvcrt
+import keyboard
 
 
 # Local libs
@@ -86,12 +88,41 @@ def normal_mode(config: Config):
         if TEST_MODE:
             break
 
-        text = "r"
-        while text.lower().strip() == "r":
-            # TODO: detect missing/incorrectly placed aspects
-            # But how? Unconnected placed aspects have a different color than they should
+        action = "retry"
+        while action == "retry":
             place_all_aspects(window_base_coords, inventory_aspects, solved)
-            text = input("-- Press enter to process next board (or type r to retry placing) --")
+            action = wait_for_action(config.next_board_hotkey)
+
+
+def wait_for_action(hotkey: str | None) -> str:
+    """
+    Waits for user input via Console (Enter='next', 'r'='retry') or Global Hotkey ('next').
+    """
+    print(f"-- Press Enter to process next board (or 'r' to retry, or global '{hotkey}') --")
+    
+    # Flush existing input
+    while msvcrt.kbhit():
+        msvcrt.getch()
+
+    while True:
+        # Check if Global Hotkey is pressed
+        if hotkey is not None and keyboard.is_pressed(hotkey):
+            print(f"Global hotkey '{hotkey}' detected.")
+            return "next"
+
+        # Check if Console Input was given
+        if msvcrt.kbhit():
+            # getch returns bytes (e.g., b'r'). It does not echo to screen.
+            key = msvcrt.getch().lower()
+            
+            if key == b'r':
+                print("Retrying aspect placing.")
+                return "retry"
+            elif key == b'\r': # Enter key
+                print()
+                return "next"
+        
+        sleep(0.05)
 
 
 def test_all_samples(config: Config):

@@ -13,6 +13,8 @@ DEFAULT_CONFIG = """
 [general]
 # Title (or beginning of title) of the game window
 game-window-title = "GT: New Horizons"
+# Global hotkey to process the next board (like pressing Enter in the console)
+next-board-hotkey = "ctrl+r"
 
 # List of aspects to disable (pretend they do not exist, like if their mod/addon is not installed)
 disabled-aspects = []
@@ -34,6 +36,7 @@ disabled-aspects = []
 @dataclass
 class Config:
     game_window_title: str
+    next_board_hotkey: str | None
     aspect_cost_overrides: dict[str, int]
     disabled_aspects: list[str]
 
@@ -52,6 +55,7 @@ def get_global_config() -> Config:
         
     return Config(
         game_window_title=config_data["general"]["game-window-title"],
+        next_board_hotkey=config_data["general"].get("next-board-hotkey", None),
         aspect_cost_overrides=config_data.get("aspect-costs", {}),
         disabled_aspects=config_data["general"].get("disabled-aspects", []),
     )

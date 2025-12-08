@@ -8,6 +8,7 @@ dependencies = [
     "pillow>=10.4.0",
     "pyautogui>=0.9.54",
     "numpy>=2.2.0",
+    "keyboard>=0.13.5",
 ]
 
 [tool.uv]
