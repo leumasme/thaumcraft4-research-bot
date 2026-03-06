@@ -6,21 +6,104 @@ import time
 import sys
 import traceback
 from time import sleep
-import msvcrt
-import keyboard
+import select
+
+# Platform-specific keyboard input handling
+IS_WINDOWS = sys.platform == "win32"
+IS_LINUX = sys.platform.startswith("linux")
+
+# Global flag for keyboard module availability
+KEYBOARD_AVAILABLE = False
+keyboard = None  # type: ignore  # Will be set if module is available
+
+if IS_WINDOWS:
+    import msvcrt
+    import keyboard as _keyboard
+
+    keyboard = _keyboard
+    KEYBOARD_AVAILABLE = True
+else:
+    # Linux/Unix keyboard handling
+    import termios
+    import tty
+
+    # Try to import keyboard, but it may require root on Linux
+    try:
+        import keyboard as _keyboard
+
+        keyboard = _keyboard
+        KEYBOARD_AVAILABLE = True
+    except ImportError:
+        KEYBOARD_AVAILABLE = False
+    except Exception:
+        # keyboard module may fail to initialize without root
+        KEYBOARD_AVAILABLE = False
+
+    class LinuxKbhit:
+        """Linux implementation of kbhit/getch functionality."""
+
+        def __init__(self):
+            self.fd = sys.stdin.fileno()
+            self.old_settings = None
+
+        def setup(self):
+            """Set terminal to raw mode for non-blocking input."""
+            try:
+                self.old_settings = termios.tcgetattr(self.fd)
+                tty.setcbreak(self.fd)
+            except termios.error:
+                # Not a terminal (e.g., running in a pipe)
+                self.old_settings = None
+
+        def restore(self):
+            """Restore terminal to original settings."""
+            if self.old_settings is not None:
+                termios.tcsetattr(self.fd, termios.TCSADRAIN, self.old_settings)
+
+        def kbhit(self) -> bool:
+            """Check if a key has been pressed."""
+            try:
+                dr, _, _ = select.select([sys.stdin], [], [], 0)
+                return bool(dr)
+            except Exception:
+                return False
+
+        def getch(self) -> bytes:
+            """Get a single character from stdin."""
+            try:
+                ch = sys.stdin.read(1)
+                return ch.encode("utf-8") if ch else b""
+            except Exception:
+                return b""
+
+    _linux_kb = LinuxKbhit()
+
+    # Create a msvcrt-compatible interface for Linux
+    class msvcrt:
+        @staticmethod
+        def kbhit():
+            return _linux_kb.kbhit()
+
+        @staticmethod
+        def getch():
+            return _linux_kb.getch()
 
 
 # Local libs
 from .utils.window import *
 from .utils.finder import *
-from .utils.config import get_global_config
+from .utils.config import get_global_config, Config
 from .utils.grid import HexGrid, SolvingHexGrid, OnscreenAspect
 from .utils.aspects import aspect_parents, _find_cheapest_element_paths_many
 from .solvers.ringsolver import solve as ringsolver_solve
 from .utils.renderer import *
 from .utils.log import log
-from .utils.mouseactions import place_aspect_at, craft_inventory_aspect, craft_missing_inventory_aspects, \
-    place_all_aspects
+from .utils.mouseactions import (
+    place_aspect_at,
+    craft_inventory_aspect,
+    craft_missing_inventory_aspects,
+    place_all_aspects,
+)
 
 # Disable 0.1 seconds delay between each pyautogui call
 gui.PAUSE = 0
@@ -38,9 +121,13 @@ def main():
     else:
         normal_mode(config)
 
-    print("CacheInfo find cheapest element paths", _find_cheapest_element_paths_many.cache_info())
+    print(
+        "CacheInfo find cheapest element paths",
+        _find_cheapest_element_paths_many.cache_info(),
+    )
     print("CacheInfo calculate distance", HexGrid.calculate_distance.cache_info())
     print("CacheInfo get neighbors", HexGrid.get_neighbors.cache_info())
+
 
 def normal_mode(config: Config):
     inventory_aspects: list[OnscreenAspect] | None = None
@@ -54,7 +141,9 @@ def normal_mode(config: Config):
         if TEST_MODE:
             inventory_aspects = analyze_image_inventory(image, pixels)
         elif inventory_aspects is None:
-            inventory_aspects, needs_image_retake = find_and_create_inventory_aspects(image, pixels, window_base_coords)
+            inventory_aspects, needs_image_retake = find_and_create_inventory_aspects(
+                image, pixels, window_base_coords
+            )
             # TODO: scuffed!
             if needs_image_retake:
                 image, window_base_coords = setup_image(
@@ -70,16 +159,16 @@ def normal_mode(config: Config):
         try:
             solved = generate_solution_from_hexgrid(grid)
         except Exception as e:
-            print("Failed to generate solution, dumping board interpretation debug render")
+            print(
+                "Failed to generate solution, dumping board interpretation debug render"
+            )
             draw_board_coords(grid, draw)
             image.save("debug_render.png")
             raise e
 
         for path in solved.applied_paths:
             draw_board_path(image, solved, path)
-            draw_placing_hints(
-                image, draw, grid, inventory_aspects, path
-            )
+            draw_placing_hints(image, draw, grid, inventory_aspects, path)
 
         draw_board_coords(solved, draw)
 
@@ -98,31 +187,47 @@ def wait_for_action(hotkey: str | None) -> str:
     """
     Waits for user input via Console (Enter='next', 'r'='retry') or Global Hotkey ('next').
     """
-    print(f"-- Press Enter to process next board (or 'r' to retry, or global '{hotkey}') --")
-    
-    # Flush existing input
-    while msvcrt.kbhit():
-        msvcrt.getch()
+    print(
+        f"-- Press Enter to process next board (or 'r' to retry, or global '{hotkey}') --"
+    )
 
-    while True:
-        # Check if Global Hotkey is pressed
-        if hotkey is not None and keyboard.is_pressed(hotkey):
-            print(f"Global hotkey '{hotkey}' detected.")
-            return "next"
+    # Setup terminal for Linux
+    if IS_LINUX:
+        _linux_kb.setup()
 
-        # Check if Console Input was given
-        if msvcrt.kbhit():
-            # getch returns bytes (e.g., b'r'). It does not echo to screen.
-            key = msvcrt.getch().lower()
-            
-            if key == b'r':
-                print("Retrying aspect placing.")
-                return "retry"
-            elif key == b'\r': # Enter key
-                print()
-                return "next"
-        
-        sleep(0.05)
+    try:
+        # Flush existing input
+        while msvcrt.kbhit():
+            msvcrt.getch()
+
+        while True:
+            # Check if Global Hotkey is pressed (requires keyboard module)
+            if KEYBOARD_AVAILABLE and hotkey is not None:
+                try:
+                    if keyboard.is_pressed(hotkey):
+                        print(f"Global hotkey '{hotkey}' detected.")
+                        return "next"
+                except Exception:
+                    # keyboard module may fail without root privileges on Linux
+                    pass
+
+            # Check if Console Input was given
+            if msvcrt.kbhit():
+                # getch returns bytes (e.g., b'r'). It does not echo to screen.
+                key = msvcrt.getch().lower()
+
+                if key == b"r":
+                    print("Retrying aspect placing.")
+                    return "retry"
+                elif key in (b"\r", b"\n"):  # Enter key (CR on Windows, LF on Linux)
+                    print()
+                    return "next"
+
+            sleep(0.05)
+    finally:
+        # Restore terminal for Linux
+        if IS_LINUX:
+            _linux_kb.restore()
 
 
 def test_all_samples(config: Config):
@@ -301,6 +406,7 @@ def build_grid(columns, valid_y_coords, grid: HexGrid, smallest_y_diff):
 
             grid.set_hex((x_index, y_index), value, (x, y))
 
+
 def find_and_create_inventory_aspects(
     image: Image, pixels, window_base_coords: tuple[int, int]
 ) -> Tuple[list[OnscreenAspect], bool]:
@@ -318,18 +424,20 @@ def find_and_create_inventory_aspects(
         )
 
     if len(missing_aspects) > 0:
-        text = input("Missing aspects from inventory! Should they be crafted automatically? [y/N]:")
+        text = input(
+            "Missing aspects from inventory! Should they be crafted automatically? [y/N]:"
+        )
         if text.lower() == "y":
             needs_next_iteration = True
             while needs_next_iteration:
-                crafts = craft_missing_inventory_aspects(window_base_coords, inventory_aspects, missing_aspects)
+                crafts = craft_missing_inventory_aspects(
+                    window_base_coords, inventory_aspects, missing_aspects
+                )
                 needs_next_iteration = crafts > 0
 
                 sleep(0.05)
                 # TODO: scuffed!
-                image, window_base_coords = setup_image(
-                    False
-                )
+                image, window_base_coords = setup_image(False)
                 inventory_aspects = analyze_image_inventory(image, image.load())
 
                 owned_aspects = set(name for _, name in inventory_aspects)
@@ -342,13 +450,12 @@ def find_and_create_inventory_aspects(
             return inventory_aspects, True
         else:
             raise Exception("Missing aspects from inventory... safety shutdown")
-    
+
     return inventory_aspects, False
 
+
 def generate_hexgrid_from_image(image: Image, pixels) -> HexGrid:
-    board_aspects, empty_hexagons = analyze_image_board(
-        image, pixels
-    )
+    board_aspects, empty_hexagons = analyze_image_board(image, pixels)
     columns, valid_y_coords, smallest_y_diff = group_hexagons(
         empty_hexagons, board_aspects, image.height
     )
@@ -374,7 +481,6 @@ def generate_solution_from_hexgrid(grid: HexGrid) -> SolvingHexGrid:
     log.info(f"Time taken to compute solution: {end_time - start_time} seconds")
     log.info("Total solution cost: %s", solved.calculate_cost())
 
-
     # Check for duplicate coordinates in solution paths
     seen_coords = set()
     seen_coords_to_aspect = {}
@@ -383,14 +489,17 @@ def generate_solution_from_hexgrid(grid: HexGrid) -> SolvingHexGrid:
         for node_idx, (aspect, coord) in enumerate(path):
             if coord in seen_coords and seen_coords_to_aspect[coord] != aspect:
                 duplicate_coords.append((coord, aspect))
-                log.error(f"Duplicate coordinate {coord} found in solution! Path {path_idx}, node {node_idx}, aspect {aspect} was {seen_coords_to_aspect[coord]}")
+                log.error(
+                    f"Duplicate coordinate {coord} found in solution! Path {path_idx}, node {node_idx}, aspect {aspect} was {seen_coords_to_aspect[coord]}"
+                )
             seen_coords.add(coord)
             seen_coords_to_aspect[coord] = aspect
 
-                
     # If the solution is invalid, dont throw so a debug image is still generated
     if duplicate_coords:
-        log.error("Invalid solution detected! Some hexes have multiple aspects assigned!")
+        log.error(
+            "Invalid solution detected! Some hexes have multiple aspects assigned!"
+        )
 
     return solved
 
@@ -402,6 +511,7 @@ def save_input_image(image: Image, grid: HexGrid):
     if not img_path.exists():
         img_path.parent.mkdir(exist_ok=True)
         image.save(str(img_path))
+
 
 if __name__ == "__main__":
     main()
