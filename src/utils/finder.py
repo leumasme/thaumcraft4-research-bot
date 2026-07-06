@@ -88,7 +88,7 @@ def find_aspects_in_frame(
     min_x, min_y, max_x, max_y = frame
     frame_bounds = (min_x, min_y, max_x, max_y)
     visited = set()
-    found_aspects = []
+    candidates = []  # (bounding_box, aspect_name, smaller_side)
 
     for y in range(min_y, max_y + 1):
         for x in range(min_x, max_x + 1):
@@ -101,13 +101,23 @@ def find_aspects_in_frame(
                 bounding_box = flood_fill(pixels, x, y, color, visited, frame_bounds)
                 bb_min_x, bb_min_y, bb_max_x, bb_max_y = bounding_box
                 smaller_side = min(bb_max_x - bb_min_x, bb_max_y - bb_min_y)
-                # TODO: False positive on the letter color, bad fix doesn't work with larger gui size?
-                if smaller_side > 8:
-                    found_aspects.append((bounding_box, aspect_name))
+                candidates.append((bounding_box, aspect_name, smaller_side))
             else:
                 visited.add((x, y))
 
-    return found_aspects
+    if not candidates:
+        return []
+
+    # Ignore aspects where the smaller side is much smaller than that of the largest aspect found
+    # Filters out noise from white text having the same color as tempestas
+    # Purely hardcoded pixel size Threshold does not work because of GUI scaling
+    max_side = max(side for _, _, side in candidates)
+
+    return [
+        (bounding_box, aspect_name)
+        for bounding_box, aspect_name, smaller_side in candidates
+        if smaller_side > 8 and smaller_side >= max_side * 0.5
+    ]
 
 
 def flood_fill(
